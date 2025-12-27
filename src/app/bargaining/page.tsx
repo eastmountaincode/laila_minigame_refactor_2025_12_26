@@ -22,7 +22,7 @@ export default function BargainingPage() {
   };
 
   return (
-    <main className="min-h-dvh bg-black text-white">
+    <main className="min-h-dvh bg-white text-black">
       {stage === "drawing" && <DrawingCanvas onComplete={advance} />}
       {stage === "treat" && <TreatReveal onComplete={advance} />}
       {stage === "worth" && <WorthQuestion onComplete={advance} />}

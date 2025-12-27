@@ -6,19 +6,27 @@ type TreatRevealProps = {
 
 export function TreatReveal({ onComplete }: TreatRevealProps) {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-black">
+    <div className="fixed inset-0 flex items-center bg-black">
       <button
         onClick={onComplete}
-        className="cursor-pointer focus:outline-none"
+        className="fixed top-0 right-0 cursor-pointer focus:outline-none"
         aria-label="Click the bag to continue"
       >
         <img
           src="/assets/webflow/images/brown-paper-bag.png"
           alt="A brown paper bag"
-          className="max-h-[70vh] max-w-[90vw] object-contain"
+          className="max-w-[90vw]"
         />
       </button>
-      <p className="mt-6 font-[Georgia] text-2xl italic text-white/80 md:text-3xl">
+      <p
+        className="absolute text-white"
+        style={{
+          fontFamily: 'Pixeltimesnewroman, sans-serif',
+          fontSize: '60px',
+          bottom: '306px',
+          left: '12%',
+        }}
+      >
         You get a treat.
       </p>
     </div>

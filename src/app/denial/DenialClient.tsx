@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ConsentModal } from "@/components/ConsentModal";
+import { WebcamMotion } from "@/components/webcam";
 
 // Adjust these values to match Webflow styling
 const FONT_SIZE = "45px";
@@ -19,6 +20,7 @@ const MODAL_DELAY = 1500;
 
 export function DenialClient() {
   const [showModal, setShowModal] = useState(false);
+  const [webcamActive, setWebcamActive] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -28,11 +30,21 @@ export function DenialClient() {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleAccept = () => {
+    setShowModal(false);
+    setWebcamActive(true);
+  };
+
   return (
     <main className="relative min-h-dvh bg-black text-white">
+      {/* Webcam motion effect - behind everything */}
+      <div className="fixed inset-0 z-0">
+        <WebcamMotion isActive={webcamActive} />
+      </div>
+
       <ConsentModal
         isOpen={showModal}
-        onAccept={() => setShowModal(false)}
+        onAccept={handleAccept}
       />
 
       {/* Content Overlay - scrollable */}

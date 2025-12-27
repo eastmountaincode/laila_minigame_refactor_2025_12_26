@@ -14,7 +14,8 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
-  const [showMessage, setShowMessage] = useState(false);
+  const [showThisIsMe, setShowThisIsMe] = useState(false);
+  const [showNotGoodEnough, setShowNotGoodEnough] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
 
   const positionRef = useRef({ x: 0, y: 0 });
@@ -57,7 +58,7 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
         const angle = Math.atan2(mouseY - position.y, mouseX - position.x);
 
         ctx.font = `${fontSize}px Georgia`;
-        ctx.fillStyle = "#FF0000";
+        ctx.fillStyle = "#000000";
         ctx.save();
         ctx.translate(position.x, position.y);
         ctx.rotate(angle);
@@ -98,7 +99,7 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
 
   const handleMouseUp = () => {
     if (isDrawing && hasDrawn) {
-      setShowMessage(true);
+      setShowThisIsMe(true);
     }
     setIsDrawing(false);
   };
@@ -110,7 +111,8 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasDrawn(false);
-    setShowMessage(false);
+    setShowThisIsMe(false);
+    setShowNotGoodEnough(false);
     setShowInstructions(true);
     counterRef.current = 0;
   };
@@ -145,7 +147,7 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
 
   const handleTouchEnd = () => {
     if (isDrawing && hasDrawn) {
-      setShowMessage(true);
+      setShowThisIsMe(true);
     }
     setIsDrawing(false);
   };
@@ -166,10 +168,10 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black">
+    <div className="fixed inset-0 bg-white">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 cursor-crosshair"
+        className="absolute inset-0 cursor-crosshair bg-white"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -183,40 +185,91 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
       {/* Instructions overlay */}
       {showInstructions && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <p className="font-[Georgia] text-3xl italic text-red-500 md:text-4xl">
+          <p
+            style={{
+              fontFamily: '"Apple Chancery", cursive',
+              fontSize: '40px',
+              color: '#FF0000'
+            }}
+          >
             show me what you look like
           </p>
-          <p className="mt-4 text-sm text-white/60">
-            {"{"} click and drag to draw {"}"}
+          <p
+            className="mt-4"
+            style={{
+              fontFamily: '"Apple Chancery", cursive',
+              fontSize: '40px',
+              color: '#FF0000'
+            }}
+          >
+            {"{"}click and drag to draw{"}"}
           </p>
         </div>
       )}
 
+      {/* "This is what I look like" button */}
+      {showThisIsMe && !showNotGoodEnough && (
+        <button
+          onClick={() => setShowNotGoodEnough(true)}
+          className="fixed bottom-[3%] right-0 left-0 mx-auto cursor-pointer text-xl text-black"
+          style={{
+            backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '300px 50px',
+            width: '400px',
+            height: '100px',
+            fontFamily: 'Pixeltimesnewroman, sans-serif',
+            fontSize: '20px',
+          }}
+        >
+          this is what i look like
+        </button>
+      )}
+
       {/* "That's not good enough" message */}
-      {showMessage && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-6">
-            <img
-              src="/assets/webflow/images/thats-not-good-enough-no-buttons.png"
-              alt="That's not good enough"
-              className="max-w-[80vw] md:max-w-[600px]"
-            />
-            <div className="flex gap-4">
+      {showNotGoodEnough && (
+        <>
+          <img
+            src="/assets/webflow/images/thats-not-good-enough-no-buttons.png"
+            alt="That's not good enough"
+            className="absolute left-1/2 top-1/2 max-w-[80vw] -translate-x-1/2 -translate-y-1/2 md:max-w-[600px]"
+          />
+          <div className="fixed bottom-[3%] left-0 right-0 mx-auto flex w-fit flex-col gap-0 md:flex-row md:gap-2">
               <button
                 onClick={onComplete}
-                className="bg-white/10 px-6 py-3 text-lg text-white transition-colors hover:bg-white/20"
+                className="cursor-pointer px-6 py-3 text-xl text-black"
+                style={{
+                  backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '90%',
+                  width: '250px',
+                  height: '120px',
+                  fontFamily: 'Pixeltimesnewroman, sans-serif',
+                  fontSize: '25px',
+                }}
               >
                 I did my best
               </button>
               <button
                 onClick={handleTryAgain}
-                className="bg-white/10 px-6 py-3 text-lg text-white transition-colors hover:bg-white/20"
+                className="cursor-pointer px-6 py-3 text-xl text-black"
+                style={{
+                  backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '90%',
+                  width: '250px',
+                  height: '120px',
+                  fontFamily: 'Pixeltimesnewroman, sans-serif',
+                  fontSize: '25px',
+                }}
               >
                 Try Again
               </button>
-            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
