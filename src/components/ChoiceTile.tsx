@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState, useCallback } from "react";
 
+// How long to show hover state on mobile before navigating (in ms)
+const MOBILE_HOVER_DELAY = 600;
+
 type ChoiceTileProps = {
   href: string;
   ariaLabel: string;
@@ -29,7 +32,7 @@ export function ChoiceTile({
       setTapped(true);
       setTimeout(() => {
         router.push(href);
-      }, 800);
+      }, MOBILE_HOVER_DELAY);
     },
     [href, router]
   );

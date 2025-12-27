@@ -28,6 +28,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Pixelated Times New Roman";
+  src: url("/assets/webflow/fonts/pixelated-times-new-roman.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 html,
 body {
   overscroll-behavior: none;
