@@ -223,7 +223,7 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
       {showThisIsMe && !showNotGoodEnough && (
         <button
           onClick={() => setShowNotGoodEnough(true)}
-          className="fixed bottom-[3%] right-0 left-0 mx-auto cursor-pointer text-xl text-black"
+          className="fixed top-1/2 right-0 left-0 mx-auto -translate-y-1/2 cursor-pointer text-xl text-black md:top-auto md:bottom-[3%] md:translate-y-0"
           style={{
             backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
             backgroundPosition: 'center',

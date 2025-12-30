@@ -11,40 +11,85 @@ export function WorthQuestion({ onComplete }: WorthQuestionProps) {
   const [showButtons, setShowButtons] = useState(false);
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-black">
-      <div className="flex flex-col items-center gap-8">
-        <img
-          src="/assets/webflow/images/whats-it-worth-infinite.gif"
-          alt=""
-          className="max-w-[80vw] md:max-w-[400px]"
-        />
+    <div className="fixed inset-0 flex flex-col items-center bg-black">
+      {/* GIF - at top on mobile, centered on desktop */}
+      <img
+        src="/assets/webflow/images/whats-it-worth-infinite.gif"
+        alt=""
+        className="mt-[80px] max-w-[70%] md:fixed md:top-[350px] md:mt-0 md:w-[40%]"
+      />
 
-        <div className="text-center">
+      {/* Typed text - below GIF on mobile, at top on desktop */}
+      <div
+        className="mt-8 px-4 text-center md:fixed md:top-[50px] md:mt-0"
+        style={{
+          fontFamily: '"Pixelated Times New Roman", sans-serif',
+          fontStyle: 'italic',
+          color: '#f0a',
+          letterSpacing: '1px',
+        }}
+      >
+        <p className="text-[48px] md:text-[80px]">
           <TypedText
             text="What would you give for it?"
             speed={75}
-            className="font-[Georgia] text-2xl italic text-purple-400 md:text-3xl"
             onComplete={() => setShowButtons(true)}
           />
-        </div>
+        </p>
+      </div>
 
-        {showButtons && (
-          <div className="flex gap-6 animate-in fade-in duration-500">
+      {/* Buttons - stacked on mobile, corners on desktop */}
+      {showButtons && (
+        <>
+          {/* Mobile: stacked buttons */}
+          <div className="fixed bottom-[8%] left-0 right-0 mx-auto flex w-fit flex-col md:hidden">
             <button
               onClick={onComplete}
-              className="px-8 py-3 text-xl text-white/80 transition-colors hover:text-white"
-            >
-              Nothing
-            </button>
-            <button
-              onClick={onComplete}
-              className="px-8 py-3 text-xl text-white/80 transition-colors hover:text-white"
+              className="cursor-pointer text-center text-[red] hover:text-[#8B0000]"
+              style={{
+                fontFamily: 'Pixeltimesnewroman, sans-serif',
+                fontSize: '50px',
+              }}
             >
               Anything
             </button>
+            <button
+              onClick={onComplete}
+              className="cursor-pointer text-center text-[red] hover:text-[#8B0000]"
+              style={{
+                fontFamily: 'Pixeltimesnewroman, sans-serif',
+                fontSize: '50px',
+              }}
+            >
+              Nothing
+            </button>
           </div>
-        )}
-      </div>
+
+          {/* Desktop: corner buttons */}
+          <button
+            onClick={onComplete}
+            className="fixed bottom-4 left-10 hidden cursor-pointer text-center text-[red] hover:text-[#8B0000] md:block"
+            style={{
+              fontFamily: 'Pixeltimesnewroman, sans-serif',
+              fontSize: '80px',
+              width: '300px',
+            }}
+          >
+            Anything
+          </button>
+          <button
+            onClick={onComplete}
+            className="fixed bottom-4 right-4 hidden cursor-pointer text-center text-[red] hover:text-[#8B0000] md:block"
+            style={{
+              fontFamily: 'Pixeltimesnewroman, sans-serif',
+              fontSize: '80px',
+              width: '300px',
+            }}
+          >
+            Nothing
+          </button>
+        </>
+      )}
     </div>
   );
 }

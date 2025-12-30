@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -9,6 +9,11 @@ export default function CompletePage() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Draggable state
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,73 +39,150 @@ export default function CompletePage() {
     }
   };
 
+  // Mouse handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Don't drag if clicking on input or button
+    if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'BUTTON') {
+      return;
+    }
+    setIsDragging(true);
+    dragOffset.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragOffset.current.x,
+      y: e.clientY - dragOffset.current.y,
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Don't drag if touching input or button
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('input') || target.closest('button')) {
+      return;
+    }
+    e.preventDefault();
+    const touch = e.touches[0];
+    setIsDragging(true);
+    dragOffset.current = {
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y,
+    };
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    setPosition({
+      x: touch.clientX - dragOffset.current.x,
+      y: touch.clientY - dragOffset.current.y,
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Add global listeners for drag
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging]);
+
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-black">
       {/* Animated GIF Background */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 select-none">
         <Image
           src="/assets/webflow/images/cropped-picmix.gif"
           alt=""
           width={1486}
           height={1000}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain object-[center_20%] md:object-cover md:object-center"
           unoptimized
           priority
+          draggable={false}
         />
       </div>
 
-      {/* Dialog Box - using actual image */}
-      <div className="relative z-10 w-[95vw] max-w-[600px] md:w-[70vw] md:max-w-[900px]">
+      {/* Dialog Box - draggable container */}
+      <div
+        className="relative z-10 w-[80vw] max-w-[320px] cursor-grab select-none active:cursor-grabbing md:w-auto md:max-w-[550px]"
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px)`,
+        }}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+      >
         {/* Dialog background image */}
         <Image
           src="/assets/webflow/images/yellow-triangle-pop-up.png"
           alt=""
           width={1790}
           height={400}
-          className="h-[240px] w-full object-fill md:h-[280px] md:object-fill"
+          className="h-auto w-full md:h-[170px] md:object-fill"
           unoptimized
           priority
+          draggable={false}
         />
 
         {/* Title bar text - positioned relative to dialog */}
         <div
-          className="absolute left-0 right-0 top-[4%] text-center font-pixel text-[14px] text-white md:text-[20px]"
+          className="absolute left-0 right-0 md:top-[1%] top-[0%] text-center font-pixel text-[12px] text-white md:text-[20px]"
         >
           Attention: You chose denial.
         </div>
 
         <div
-          className="absolute left-0 right-0 text-center font-pixel text-[16px] text-black md:text-[24px]"
-          style={{ top: "27%" }}
+          className="absolute left-0 right-0 text-center font-pixel text-[10px] text-black md:text-[18px]"
+          style={{ top: "24%" }}
         >
           Are you a cartographer of your own inner world?
         </div>
 
-        {/* Input - positioned separately */}
-        <div
-          className="absolute left-1/2 -translate-x-1/2"
+        {/* Form with input and button side by side on mobile */}
+        <form
+          id="email-form"
+          onSubmit={handleSubmit}
+          className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 md:flex-col md:gap-2"
           style={{ top: "45%" }}
         >
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="enter your email to receive"
+            placeholder="enter your email"
             required
-            form="email-form"
-            className="w-[280px] border-none bg-white px-3 py-[1px] font-pixel-alt text-[30px] text-black placeholder:text-[30px] md:w-[400px] md:py-[1px] md:text-[30px] md:placeholder:text-[30px]"
+            className="w-[90px] cursor-text border-none bg-white px-1 py-0 font-pixel-alt text-[10px] text-black placeholder:text-[10px] md:w-[250px] md:text-[18px] md:placeholder:text-[24px]"
             style={{ outline: "2px dotted #cc0000" }}
           />
-        </div>
-
-        {/* Submit button - positioned separately */}
-        <form id="email-form" onSubmit={handleSubmit} className="absolute left-1/2 -translate-x-1/2" style={{ top: "70%" }}>
           <button
             type="submit"
             disabled={status === "loading"}
-            className="h-[50px] w-[160px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[24px] text-black disabled:opacity-50 md:h-[50px] md:w-[180px] md:text-[30px]"
+            className="h-[22px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black disabled:opacity-50 md:h-[35px] md:w-[120px] md:text-[20px]"
           >
-            {status === "loading" ? "Please wait..." : "Submit"}
+            {status === "loading" ? "..." : "Submit"}
           </button>
         </form>
 
