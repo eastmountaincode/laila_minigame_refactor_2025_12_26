@@ -16,6 +16,7 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
   const [hasDrawn, setHasDrawn] = useState(false);
   const [showThisIsMe, setShowThisIsMe] = useState(false);
   const [showNotGoodEnough, setShowNotGoodEnough] = useState(false);
+  const [showNotGoodEnoughButtons, setShowNotGoodEnoughButtons] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
 
   const positionRef = useRef({ x: 0, y: 0 });
@@ -118,6 +119,7 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
   };
 
   const handleTryAgain = () => {
+    setShowNotGoodEnoughButtons(false);
     handleDoubleClick();
   };
 
@@ -167,6 +169,16 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
+  // Show buttons 1.5 seconds after "not good enough" popup appears
+  useEffect(() => {
+    if (showNotGoodEnough && !showNotGoodEnoughButtons) {
+      const timer = setTimeout(() => {
+        setShowNotGoodEnoughButtons(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [showNotGoodEnough, showNotGoodEnoughButtons]);
+
   return (
     <div className="fixed inset-0 bg-white">
       <canvas
@@ -184,7 +196,7 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
 
       {/* Instructions overlay */}
       {showInstructions && (
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
           <p
             style={{
               fontFamily: '"Apple Chancery", cursive',
@@ -195,7 +207,7 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
             show me what you look like
           </p>
           <p
-            className="mt-4"
+            className="mt-2"
             style={{
               fontFamily: '"Apple Chancery", cursive',
               fontSize: '40px',
@@ -229,47 +241,49 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
 
       {/* "That's not good enough" message */}
       {showNotGoodEnough && (
-        <>
-          <img
-            src="/assets/webflow/images/thats-not-good-enough-no-buttons.png"
-            alt="That's not good enough"
-            className="absolute left-1/2 top-1/2 max-w-[80vw] -translate-x-1/2 -translate-y-1/2 md:max-w-[600px]"
-          />
-          <div className="fixed bottom-[3%] left-0 right-0 mx-auto flex w-fit flex-col gap-0 md:flex-row md:gap-2">
-              <button
-                onClick={onComplete}
-                className="cursor-pointer px-6 py-3 text-xl text-black"
-                style={{
-                  backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '90%',
-                  width: '250px',
-                  height: '120px',
-                  fontFamily: 'Pixeltimesnewroman, sans-serif',
-                  fontSize: '25px',
-                }}
-              >
-                I did my best
-              </button>
-              <button
-                onClick={handleTryAgain}
-                className="cursor-pointer px-6 py-3 text-xl text-black"
-                style={{
-                  backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '90%',
-                  width: '250px',
-                  height: '120px',
-                  fontFamily: 'Pixeltimesnewroman, sans-serif',
-                  fontSize: '25px',
-                }}
-              >
-                Try Again
-              </button>
-          </div>
-        </>
+        <img
+          src="/assets/webflow/images/thats-not-good-enough-no-buttons.png"
+          alt="That's not good enough"
+          className="absolute left-1/2 top-1/2 scale-120 -translate-x-1/2 -translate-y-1/2 md:w-auto md:max-w-[650px] md:scale-100"
+        />
+      )}
+
+      {/* Buttons appear 1.5s after popup */}
+      {showNotGoodEnoughButtons && (
+        <div className="fixed bottom-[2%] left-0 right-0 mx-auto flex w-fit flex-col -space-y-10 md:flex-row md:space-y-0 md:gap-2">
+          <button
+            onClick={onComplete}
+            className="cursor-pointer px-6 py-3 text-xl text-black"
+            style={{
+              backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '90%',
+              width: '250px',
+              height: '120px',
+              fontFamily: 'Pixeltimesnewroman, sans-serif',
+              fontSize: '25px',
+            }}
+          >
+            I did my best
+          </button>
+          <button
+            onClick={handleTryAgain}
+            className="cursor-pointer px-6 py-3 text-xl text-black"
+            style={{
+              backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '90%',
+              width: '250px',
+              height: '120px',
+              fontFamily: 'Pixeltimesnewroman, sans-serif',
+              fontSize: '25px',
+            }}
+          >
+            Try Again
+          </button>
+        </div>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
-import { Resend } from "resend";
 import { NextResponse } from "next/server";
+import { appendRow } from "@/lib/google-sheets";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const SPREADSHEET_ID = process.env.GOOGLE_EMAILS_SPREADSHEET_ID!;
 
 export async function POST(request: Request) {
   try {
@@ -23,30 +23,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // If RESEND_API_KEY is not set, just log and succeed (for development)
-    if (!process.env.RESEND_API_KEY) {
+    // If Google Sheets is not configured, just log and succeed (for development)
+    if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_EMAILS_SPREADSHEET_ID) {
       console.log("📧 Email subscription (dev mode):", email);
       return NextResponse.json({ success: true, message: "Subscribed (dev mode)" });
     }
 
-    // Add contact to Resend audience or send a welcome email
-    // Option 1: Add to an audience (requires audience ID)
-    // await resend.contacts.create({
-    //   email,
-    //   audienceId: process.env.RESEND_AUDIENCE_ID!,
-    // });
-
-    // Option 2: Send a welcome/confirmation email
-    await resend.emails.send({
-      from: "onboarding@resend.dev", // Replace with your verified domain
-      to: email,
-      subject: "You chose denial",
-      html: `
-        <h1>Welcome, cartographer of your inner world</h1>
-        <p>Thank you for choosing denial.</p>
-        <p>You have begun your journey.</p>
-      `,
-    });
+    // Append email to Google Sheet with timestamp
+    const timestamp = new Date().toISOString();
+    await appendRow(SPREADSHEET_ID, "Sheet1!A:B", [email, timestamp]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

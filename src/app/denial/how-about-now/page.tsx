@@ -92,7 +92,7 @@ export default function HowAboutNowPage() {
         <div className="absolute bottom-[13%] left-[10%] z-10 text-center">
           <Link
             href="/denial/complete"
-            className="font-pixel text-[40px] text-white transition-colors hover:text-purple-400"
+            className="font-pixel text-[40px] text-white hover:text-purple-400"
           >
             fine
           </Link>
