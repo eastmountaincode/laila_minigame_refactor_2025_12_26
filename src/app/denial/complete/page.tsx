@@ -32,73 +32,88 @@ export default function CompletePage() {
   };
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-black text-white">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-black">
       {/* Animated GIF Background */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0">
         <Image
           src="/assets/webflow/images/cropped-picmix.gif"
           alt=""
           width={1486}
           height={1000}
-          className="h-full w-full object-cover opacity-60"
+          className="h-full w-full object-cover"
           unoptimized
           priority
         />
       </div>
 
-      {/* Yellow Triangle Popup */}
-      <div className="relative z-10 flex flex-col items-center gap-6 px-6">
-        {/* Triangle Container */}
-        <div className="relative">
-          <Image
-            src="/assets/webflow/images/yellow-triangle-pop-up.png"
-            alt=""
-            width={600}
-            height={500}
-            className="h-auto w-[80vw] max-w-[600px]"
-            priority
-          />
+      {/* Dialog Box - using actual image */}
+      <div className="relative z-10 w-[95vw] max-w-[600px] md:w-[70vw] md:max-w-[900px]">
+        {/* Dialog background image */}
+        <Image
+          src="/assets/webflow/images/yellow-triangle-pop-up.png"
+          alt=""
+          width={1790}
+          height={400}
+          className="h-[240px] w-full object-fill md:h-[280px] md:object-fill"
+          unoptimized
+          priority
+        />
 
-          {/* Text and Form overlaid on triangle */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center">
-            <p className="text-sm font-bold text-black md:text-base">
-              Attention: You chose denial.
-            </p>
-            <p className="text-base font-medium text-black md:text-lg">
-              Are you a cartographer of your own inner world?
-            </p>
-
-            {status === "success" ? (
-              <div className="rounded bg-green-100 p-4 text-green-800">
-                Thank you! Your submission has been received!
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="flex w-full max-w-xs flex-col gap-3">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="enter your email to receive"
-                  required
-                  className="rounded border border-gray-300 px-4 py-2 text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-                <button
-                  type="submit"
-                  disabled={status === "loading"}
-                  className="rounded bg-yellow-500 px-4 py-2 font-medium text-black transition-colors hover:bg-yellow-600 disabled:opacity-50"
-                >
-                  {status === "loading" ? "Please wait..." : "Submit"}
-                </button>
-              </form>
-            )}
-
-            {status === "error" && (
-              <div className="rounded bg-red-100 p-2 text-sm text-red-800">
-                {errorMessage}
-              </div>
-            )}
-          </div>
+        {/* Title bar text - positioned relative to dialog */}
+        <div
+          className="absolute left-0 right-0 top-[4%] text-center font-pixel text-[14px] text-white md:text-[20px]"
+        >
+          Attention: You chose denial.
         </div>
+
+        <div
+          className="absolute left-0 right-0 text-center font-pixel text-[16px] text-black md:text-[24px]"
+          style={{ top: "27%" }}
+        >
+          Are you a cartographer of your own inner world?
+        </div>
+
+        {/* Input - positioned separately */}
+        <div
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{ top: "45%" }}
+        >
+          {status === "success" ? (
+            <div className="font-pixel text-[12px] text-black md:text-[16px]">
+              Thank you! Your submission has been received!
+            </div>
+          ) : (
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="enter your email to receive"
+              required
+              form="email-form"
+              className="w-[280px] border-none bg-white px-3 py-[1px] font-pixel-alt text-[30px] text-black placeholder:text-[30px] md:w-[400px] md:py-[1px] md:text-[30px] md:placeholder:text-[30px]"
+              style={{ outline: "2px dotted #cc0000" }}
+            />
+          )}
+        </div>
+
+        {/* Submit button - positioned separately */}
+        {status !== "success" && (
+          <form id="email-form" onSubmit={handleSubmit} className="absolute left-1/2 -translate-x-1/2" style={{ top: "70%" }}>
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              className="h-[50px] w-[160px] bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[24px] text-black disabled:opacity-50 md:h-[50px] md:w-[180px] md:text-[30px]"
+            >
+              {status === "loading" ? "Please wait..." : "Submit"}
+            </button>
+          </form>
+        )}
+
+        {status === "error" && (
+          <div className="absolute left-1/2 -translate-x-1/2 font-pixel text-[10px] text-red-600" style={{ top: "250%" }}>
+            {errorMessage}
+          </div>
+        )}
       </div>
     </main>
   );
