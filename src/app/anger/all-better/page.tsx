@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -9,6 +9,19 @@ export default function AllBetterPage() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isOverTarget, setIsOverTarget] = useState(false);
+  const [showText, setShowText] = useState(true);
+
+  // Delay showing text after dragging stops
+  useEffect(() => {
+    if (isDragging) {
+      setShowText(false);
+    } else {
+      const timer = setTimeout(() => {
+        setShowText(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isDragging]);
   const dragOffset = useRef({ x: 0, y: 0 });
   const targetRef = useRef<HTMLDivElement>(null);
   const vesselRef = useRef<HTMLDivElement>(null);
@@ -133,6 +146,15 @@ export default function AllBetterPage() {
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
+        {/* Instruction text - positioned to left of vessel, disappears when dragging */}
+        {showText && (
+          <div
+            className="absolute right-full whitespace-nowrap font-pixel text-white"
+            style={{ top: "30%", marginRight: "10px", fontSize: "20px" }}
+          >
+            drag vessel to bottle it up
+          </div>
+        )}
         <Image
           src="/assets/webflow/images/picmix.com_2164255.png"
           alt=""
