@@ -73,9 +73,10 @@ export function WebcamMotionDetection({
           p.draw = () => {
             if (!capture || !prevFrame || !diffFrame) return;
 
-            // Load pixels from capture
-            capture.loadPixels();
-            if (!capture.pixels || capture.pixels.length === 0) return;
+            // Load pixels from capture (cast to any - p5 types don't include these)
+            const cap = capture as unknown as { loadPixels: () => void; pixels: number[] };
+            cap.loadPixels();
+            if (!cap.pixels || cap.pixels.length === 0) return;
 
             if (!isReady) {
               isReady = true;
@@ -85,10 +86,10 @@ export function WebcamMotionDetection({
             prevFrame.loadPixels();
             diffFrame.loadPixels();
 
-            for (let i = 0; i < capture.pixels.length; i += 4) {
-              const r = capture.pixels[i];
-              const g = capture.pixels[i + 1];
-              const b = capture.pixels[i + 2];
+            for (let i = 0; i < cap.pixels.length; i += 4) {
+              const r = cap.pixels[i];
+              const g = cap.pixels[i + 1];
+              const b = cap.pixels[i + 2];
 
               const prevR = prevFrame.pixels[i] || 0;
               const prevG = prevFrame.pixels[i + 1] || 0;

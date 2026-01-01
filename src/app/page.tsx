@@ -2,12 +2,7 @@ import { BackgroundVideo } from "@/components/BackgroundVideo";
 import { ChoiceTile } from "@/components/ChoiceTile";
 import Image from "next/image";
 
-export default function Home({
-  searchParams,
-}: {
-  searchParams?: { debug?: string };
-}) {
-  const debug = searchParams?.debug === "1";
+export default function Home() {
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-black text-white">
@@ -41,7 +36,7 @@ export default function Home({
         <div className="hidden h-full md:grid md:grid-cols-2 md:grid-rows-2">
           {/* Top-left: Denial */}
           <div className="pointer-events-auto flex items-start justify-start">
-            <ChoiceTile href="/denial" ariaLabel="Denial" debug={debug} debugLabel="Denial" className="group">
+            <ChoiceTile href="/denial" ariaLabel="Denial" className="group">
               <Image
                 src="/assets/webflow/images/denial.gif"
                 alt=""
@@ -65,7 +60,7 @@ export default function Home({
 
           {/* Top-right: Bargaining */}
           <div className="pointer-events-auto flex items-start justify-end">
-            <ChoiceTile href="/bargaining" ariaLabel="Bargaining" debug={debug} debugLabel="Bargaining" className="group">
+            <ChoiceTile href="/bargaining" ariaLabel="Bargaining" className="group">
               <Image
                 src="/assets/webflow/images/bargaining.gif"
                 alt=""
@@ -89,7 +84,7 @@ export default function Home({
 
           {/* Bottom-left: Anger */}
           <div className="pointer-events-auto flex items-end justify-start">
-            <ChoiceTile href="/anger" ariaLabel="Anger" debug={debug} debugLabel="Anger" className="group">
+            <ChoiceTile href="/anger" ariaLabel="Anger" className="group">
               <Image
                 src="/assets/webflow/images/anger.gif"
                 alt=""
@@ -113,7 +108,7 @@ export default function Home({
 
           {/* Bottom-right: Tender */}
           <div className="pointer-events-auto flex items-end justify-end">
-            <ChoiceTile href="/tender" ariaLabel="Tender" debug={debug} debugLabel="Tender" className="group">
+            <ChoiceTile href="/tender" ariaLabel="Tender" className="group">
               <Image
                 src="/assets/webflow/images/tender.gif"
                 alt=""
@@ -139,7 +134,7 @@ export default function Home({
         {/* Mobile layout: 2x2 grid */}
         <div className="grid h-full grid-cols-2 grid-rows-2 md:hidden">
           <div className="pointer-events-auto flex items-start justify-start pt-[20vh] pl-[5vw]">
-            <ChoiceTile href="/denial" ariaLabel="Denial" debug={debug} className="group">
+            <ChoiceTile href="/denial" ariaLabel="Denial" className="group">
               <img
                 src="/assets/webflow/images/denial.gif"
                 alt=""
@@ -154,7 +149,7 @@ export default function Home({
           </div>
 
           <div className="pointer-events-auto flex items-start justify-end">
-            <ChoiceTile href="/bargaining" ariaLabel="Bargaining" debug={debug} className="group">
+            <ChoiceTile href="/bargaining" ariaLabel="Bargaining" className="group">
               <img
                 src="/assets/webflow/images/bargaining.gif"
                 alt=""
@@ -169,7 +164,7 @@ export default function Home({
           </div>
 
           <div className="pointer-events-auto flex items-end justify-start pb-[17vh] -ml-[2vw]">
-            <ChoiceTile href="/anger" ariaLabel="Anger" debug={debug} className="group">
+            <ChoiceTile href="/anger" ariaLabel="Anger" className="group">
               <img
                 src="/assets/webflow/images/anger.gif"
                 alt=""
@@ -184,7 +179,7 @@ export default function Home({
           </div>
 
           <div className="pointer-events-auto flex items-end justify-end">
-            <ChoiceTile href="/tender" ariaLabel="Tender" debug={debug} className="group">
+            <ChoiceTile href="/tender" ariaLabel="Tender" className="group">
               <img
                 src="/assets/webflow/images/tender.gif"
                 alt=""

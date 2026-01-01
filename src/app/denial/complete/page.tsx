@@ -187,7 +187,7 @@ export default function CompletePage() {
         </form>
 
         {status === "error" && (
-          <div className="absolute left-1/2 -translate-x-1/2 font-pixel text-[10px] text-red-600" style={{ top: "250%" }}>
+          <div className="absolute left-1/2 -translate-x-1/2 font-pixel text-red-600" style={{ top: "150%", fontSize: "24px" }}>
             {errorMessage}
           </div>
         )}

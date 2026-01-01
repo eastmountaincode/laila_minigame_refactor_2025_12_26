@@ -10,8 +10,6 @@ type ChoiceTileProps = {
   href: string;
   ariaLabel: string;
   className: string;
-  debug?: boolean;
-  debugLabel?: string;
   children?: React.ReactNode;
 };
 
@@ -19,8 +17,6 @@ export function ChoiceTile({
   href,
   ariaLabel,
   className,
-  debug,
-  debugLabel,
   children,
 }: ChoiceTileProps) {
   const router = useRouter();
@@ -50,18 +46,12 @@ export function ChoiceTile({
       }}
       className={[
         "relative block select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400",
-        debug ? "ring-2 ring-lime-400/90 bg-lime-400/10" : null,
         tapped ? "tapped" : null,
         className,
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      {debug ? (
-        <span className="pointer-events-none absolute left-2 top-2 rounded bg-black/70 px-2 py-1 text-xs font-semibold tracking-wide text-lime-300">
-          {debugLabel ?? ariaLabel}
-        </span>
-      ) : null}
       {children}
     </a>
   );

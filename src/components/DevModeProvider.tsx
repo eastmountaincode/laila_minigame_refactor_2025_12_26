@@ -1,12 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
-export function DevModeProvider() {
+// Set to false for production - disables dev mode entirely
+const ENABLE_DEV_MODE = false;
+
+const DevModeContext = createContext(false);
+
+export function useDevMode() {
+  return useContext(DevModeContext);
+}
+
+export function DevModeProvider({ children }: { children: React.ReactNode }) {
+  const [devMode, setDevMode] = useState(false);
+
   useEffect(() => {
+    if (!ENABLE_DEV_MODE) return;
+
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "b" || e.key === "B") {
-        document.body.classList.toggle("dev-mode");
+        setDevMode((prev) => !prev);
       }
     }
 
@@ -14,5 +27,18 @@ export function DevModeProvider() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  return null;
+  // Sync with body class
+  useEffect(() => {
+    if (devMode) {
+      document.body.classList.add("dev-mode");
+    } else {
+      document.body.classList.remove("dev-mode");
+    }
+  }, [devMode]);
+
+  return (
+    <DevModeContext.Provider value={devMode}>
+      {children}
+    </DevModeContext.Provider>
+  );
 }

@@ -16,7 +16,7 @@ export default function DontTouchMePage() {
     // Show bored button after some time
     const timer = setTimeout(() => {
       setShowBored(true);
-    }, 6500);
+    }, 5000);
 
     // @ts-expect-error p5 is loaded via script
     const sketch = (p: typeof window.p5.prototype) => {

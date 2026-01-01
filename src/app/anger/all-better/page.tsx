@@ -122,7 +122,7 @@ export default function AllBetterPage() {
       {/* Draggable vessel */}
       <div
         ref={vesselRef}
-        className="fixed w-[100px] md:w-[200px] cursor-grab select-none touch-none active:cursor-grabbing"
+        className="fixed w-[100px] md:w-[125px] cursor-grab select-none touch-none active:cursor-grabbing"
         style={{
           left: position.x || "auto",
           top: position.y || "auto",
