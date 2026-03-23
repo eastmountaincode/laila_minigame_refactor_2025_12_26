@@ -1,14 +1,14 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useDevMode } from "@/components/DevModeProvider";
 
 type DrawingCanvasProps = {
   onComplete: () => void;
 };
 
 // Drawing text - you can customize this with your own content
-const DRAWING_TEXT =
-  "What do you see when you look at yourself? Do you see someone worth fighting for? Worth waiting for? Worth believing in? Or do you see something dreadful waiting to happen? The answer is in your hands. Draw it out. Let it flow. Let it go. What are you willing to give? What are you willing to lose? The choice was always yours. ";
+const DRAWING_TEXT = "Flash flood you drown. But it's the ocean inside of my head. I feed the mountain. My affirmations are avalanches. And it's so not me to want it to bleed. But there's something sweet. There's a ledger they'll make with your name. Will I do anything? I'll do anything. Apologize. I never wanted to scare you. A winded sigh. Dry hurricanes all around the truth. And it's so not me to want it to bleed. But there's something sweet. There's a ledger they'll make with your name. Will I do anything? I'll do anything. ";
 
 export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -18,6 +18,7 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
   const [showNotGoodEnough, setShowNotGoodEnough] = useState(false);
   const [showNotGoodEnoughButtons, setShowNotGoodEnoughButtons] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+  const devMode = useDevMode();
 
   const positionRef = useRef({ x: 0, y: 0 });
   const counterRef = useRef(0);
@@ -239,50 +240,52 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
         </button>
       )}
 
-      {/* "That's not good enough" message */}
+      {/* "That's not good enough" message with buttons */}
       {showNotGoodEnough && (
-        <img
-          src="/assets/webflow/images/thats-not-good-enough-no-buttons.png"
-          alt="That's not good enough"
-          className="absolute left-1/2 top-1/2 scale-120 -translate-x-1/2 -translate-y-1/2 md:w-auto md:max-w-[650px] md:scale-100"
-        />
-      )}
-
-      {/* Buttons appear 1.5s after popup */}
-      {showNotGoodEnoughButtons && (
-        <div className="fixed bottom-[2%] left-0 right-0 mx-auto flex w-fit flex-col -space-y-10 md:flex-row md:space-y-0 md:gap-2">
-          <button
-            onClick={onComplete}
-            className="cursor-pointer px-6 py-3 text-xl text-black"
-            style={{
-              backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '90%',
-              width: '250px',
-              height: '120px',
-              fontFamily: 'Pixeltimesnewroman, sans-serif',
-              fontSize: '25px',
-            }}
-          >
-            I did my best
-          </button>
-          <button
-            onClick={handleTryAgain}
-            className="cursor-pointer px-6 py-3 text-xl text-black"
-            style={{
-              backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '90%',
-              width: '250px',
-              height: '120px',
-              fontFamily: 'Pixeltimesnewroman, sans-serif',
-              fontSize: '25px',
-            }}
-          >
-            Try Again
-          </button>
+        <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${devMode ? 'border-2 border-red-500' : ''}`}>
+          <div className={`relative ${devMode ? 'border-2 border-blue-500' : ''}`}>
+            <img
+              src="/assets/webflow/images/thats-not-good-enough-no-buttons.png"
+              alt="That's not good enough"
+              className={`max-w-[450px] md:w-auto md:max-w-[600px] ${devMode ? 'border-2 border-green-500' : ''}`}
+            />
+            {/* Buttons positioned on the popup */}
+            {showNotGoodEnoughButtons && (
+              <div
+                className={`absolute left-1/2 -translate-x-1/2 flex flex-row justify-center gap-2 md:gap-4 ${devMode ? 'border-2 border-yellow-500' : ''}`}
+                style={{ bottom: "39%", left: "52%", width: "100%" }}
+              >
+                <button
+                  onClick={onComplete}
+                  className={`w-[110px] h-[30px] md:w-[130px] md:h-[40px] cursor-pointer text-black ${devMode ? 'border-2 border-pink-500' : ''}`}
+                  style={{
+                    backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: 'contain',
+                    fontFamily: 'Pixeltimesnewroman, sans-serif',
+                    fontSize: '16px',
+                  }}
+                >
+                  I did my best
+                </button>
+                <button
+                  onClick={handleTryAgain}
+                  className={`w-[110px] h-[30px] md:w-[130px] md:h-[40px] cursor-pointer text-black ${devMode ? 'border-2 border-pink-500' : ''}`}
+                  style={{
+                    backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: 'contain',
+                    fontFamily: 'Pixeltimesnewroman, sans-serif',
+                    fontSize: '16px',
+                  }}
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
