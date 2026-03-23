@@ -4,11 +4,14 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+type PopupView = "main" | "confirm";
+
 export default function CompletePage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [popupView, setPopupView] = useState<PopupView>("main");
 
   // Draggable state
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -147,49 +150,99 @@ export default function CompletePage() {
           draggable={false}
         />
 
-        {/* Title bar text - positioned relative to dialog */}
-        <div
-          className="absolute left-0 right-0 md:top-[1%] top-[0%] text-center font-pixel text-[12px] text-white md:text-[20px]"
-        >
-          Attention: You chose denial.
-        </div>
+        {popupView === "main" ? (
+          <>
+            {/* Title bar text - positioned relative to dialog */}
+            <div
+              className="absolute left-0 right-0 md:top-[1%] top-[0%] text-center font-pixel text-[12px] text-white md:text-[20px]"
+            >
+              Attention: You chose denial.
+            </div>
 
-        <div
-          className="absolute left-0 right-0 text-center font-pixel text-[10px] text-black md:text-[18px]"
-          style={{ top: "24%" }}
-        >
-          Are you a cartographer of your own inner world?
-        </div>
+            <div
+              className="absolute left-0 right-0 text-center font-pixel text-[10px] text-black md:text-[18px]"
+              style={{ top: "24%" }}
+            >
+              Are you a cartographer of your own inner world?
+            </div>
 
-        {/* Form with input and button side by side on mobile */}
-        <form
-          id="email-form"
-          onSubmit={handleSubmit}
-          className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 md:flex-col md:gap-2"
-          style={{ top: "45%" }}
-        >
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="enter your email"
-            required
-            className="w-[90px] cursor-text border-none bg-white px-1 py-0 font-pixel-alt text-[10px] text-black placeholder:text-[10px] md:w-[250px] md:text-[18px] md:placeholder:text-[24px]"
-            style={{ outline: "2px dotted #cc0000" }}
-          />
-          <button
-            type="submit"
-            disabled={status === "loading"}
-            className="h-[22px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black disabled:opacity-50 md:h-[35px] md:w-[120px] md:text-[20px]"
-          >
-            {status === "loading" ? "..." : "Submit"}
-          </button>
-        </form>
+            {/* Form with input and button side by side on mobile */}
+            <form
+              id="email-form"
+              onSubmit={handleSubmit}
+              className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 md:flex-col md:gap-2"
+              style={{ top: "45%" }}
+            >
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="enter your email"
+                required
+                className="w-[90px] cursor-text border-none bg-white px-1 py-0 font-pixel-alt text-[10px] text-black placeholder:text-[10px] md:w-[250px] md:text-[18px] md:placeholder:text-[24px]"
+                style={{ outline: "2px dotted #cc0000" }}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={status === "loading"}
+                  className="h-[22px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black disabled:opacity-50 md:h-[35px] md:w-[120px] md:text-[20px]"
+                >
+                  {status === "loading" ? "..." : "Submit"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPopupView("confirm")}
+                  className="h-[22px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black md:h-[35px] md:w-[120px] md:text-[20px]"
+                >
+                  No
+                </button>
+              </div>
+            </form>
 
-        {status === "error" && (
-          <div className="absolute left-1/2 -translate-x-1/2 font-pixel text-red-600" style={{ top: "150%", fontSize: "24px" }}>
-            {errorMessage}
-          </div>
+            {status === "error" && (
+              <div className="absolute left-1/2 -translate-x-1/2 font-pixel text-red-600" style={{ top: "150%", fontSize: "24px" }}>
+                {errorMessage}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Confirmation popup content */}
+            <div
+              className="absolute left-0 right-0 md:top-[1%] top-[0%] text-center font-pixel text-[12px] text-white md:text-[20px]"
+            >
+              Wait!
+            </div>
+
+            <div
+              className="absolute left-0 right-0 text-center font-pixel text-[10px] text-black md:text-[18px]"
+              style={{ top: "24%" }}
+            >
+              Are you sure you don&apos;t want my gift?
+            </div>
+
+            {/* Yes/No buttons */}
+            <div
+              className="absolute left-1/2 flex -translate-x-1/2 gap-2"
+              style={{ top: "50%" }}
+            >
+              <button
+                type="button"
+                onClick={() => router.push("/s2")}
+                className="h-[22px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black md:h-[35px] md:w-[120px] md:text-[20px]"
+              >
+                I want it
+              </button>
+              <button
+                type="button"
+                onClick={() => setPopupView("main")}
+                className="h-[22px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black md:h-[35px] md:w-[120px] md:text-[20px]"
+              >
+                Don&apos;t want
+              </button>
+            </div>
+          </>
         )}
       </div>
     </main>

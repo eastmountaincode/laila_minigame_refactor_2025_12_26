@@ -1,14 +1,76 @@
 import { BackgroundVideo } from "@/components/BackgroundVideo";
 import { ChoiceTile } from "@/components/ChoiceTile";
 import Image from "next/image";
+import { sanityFetch } from "@/sanity/lib/fetch";
+import { HOMEPAGE_QUERY } from "@/sanity/lib/queries";
+import { urlFor } from "@/sanity/lib/image";
 
-export default function Home() {
+// Layout config per button — presentation concern, not CMS content
+const BUTTON_LAYOUT: Record<
+  string,
+  {
+    desktopPosition: string;
+    desktopWidth: number;
+    desktopHeight: number;
+    mobilePosition: string;
+    mobileClass: string;
+    mobileHoverClass: string;
+  }
+> = {
+  denial: {
+    desktopPosition: "pointer-events-auto flex items-start justify-start",
+    desktopWidth: 259,
+    desktopHeight: 127,
+    mobilePosition:
+      "pointer-events-auto flex items-start justify-start pt-[20vh] pl-[5vw]",
+    mobileClass: "h-auto w-[66vw] max-w-[275px]",
+    mobileHoverClass: "h-auto w-[66vw] max-w-[275px]",
+  },
+  bargaining: {
+    desktopPosition: "pointer-events-auto flex items-start justify-end",
+    desktopWidth: 482,
+    desktopHeight: 144,
+    mobilePosition: "pointer-events-auto flex items-start justify-end",
+    mobileClass: "h-auto w-[56vw] max-w-[300px]",
+    mobileHoverClass: "h-auto w-[64vw] max-w-[340px]",
+  },
+  anger: {
+    desktopPosition: "pointer-events-auto flex items-end justify-start",
+    desktopWidth: 256,
+    desktopHeight: 126,
+    mobilePosition:
+      "pointer-events-auto flex items-end justify-start pb-[17vh] -ml-[2vw]",
+    mobileClass: "h-auto w-[42vw] max-w-[170px]",
+    mobileHoverClass: "h-auto w-[42vw] max-w-[170px]",
+  },
+  tender: {
+    desktopPosition: "pointer-events-auto flex items-end justify-end",
+    desktopWidth: 282,
+    desktopHeight: 124,
+    mobilePosition: "pointer-events-auto flex items-end justify-end",
+    mobileClass: "h-auto w-[24vw] max-w-[95px]",
+    mobileHoverClass: "h-auto w-[24vw] max-w-[95px]",
+  },
+};
+
+export default async function Home() {
+  const data = await sanityFetch<any>({
+    query: HOMEPAGE_QUERY,
+    tags: ["homepage"],
+  });
+
+  // Fallback to local assets if Sanity data isn't available yet
+  const heroImageUrl = data?.heroImage?.asset?.url;
+  const buttons = data?.choiceButtons ?? [];
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-black text-white">
       <BackgroundVideo
         className="z-0"
-        posterSrc="/assets/webflow/videos/Swirl-Option-3-video-840p-2-poster-00001.jpg"
+        posterSrc={
+          heroImageUrl ??
+          "/assets/webflow/videos/Swirl-Option-3-video-840p-2-poster-00001.jpg"
+        }
         sources={[
           {
             src: "/assets/webflow/videos/Swirl-Option-3-video-840p-2-transcode.webm",
@@ -34,164 +96,70 @@ export default function Home() {
       <div className="pointer-events-none fixed inset-0 z-30 p-[clamp(12px,3vw,36px)]">
         {/* Desktop layout */}
         <div className="hidden h-full md:grid md:grid-cols-2 md:grid-rows-2">
-          {/* Top-left: Denial */}
-          <div className="pointer-events-auto flex items-start justify-start">
-            <ChoiceTile href="/denial" ariaLabel="Denial" className="group">
-              <Image
-                src="/assets/webflow/images/denial.gif"
-                alt=""
-                width={259}
-                height={127}
-                className="group-hover:hidden"
-                unoptimized
-                priority
-              />
-              <Image
-                src="/assets/webflow/images/denial-pink-2.gif"
-                alt=""
-                width={259}
-                height={127}
-                className="hidden group-hover:block"
-                unoptimized
-                priority
-              />
-            </ChoiceTile>
-          </div>
-
-          {/* Top-right: Bargaining */}
-          <div className="pointer-events-auto flex items-start justify-end">
-            <ChoiceTile href="/bargaining" ariaLabel="Bargaining" className="group">
-              <Image
-                src="/assets/webflow/images/bargaining.gif"
-                alt=""
-                width={482}
-                height={144}
-                className="group-hover:hidden"
-                unoptimized
-                priority
-              />
-              <Image
-                src="/assets/webflow/images/bargaining-water.png"
-                alt=""
-                width={482}
-                height={144}
-                className="hidden group-hover:block"
-                unoptimized
-                priority
-              />
-            </ChoiceTile>
-          </div>
-
-          {/* Bottom-left: Anger */}
-          <div className="pointer-events-auto flex items-end justify-start">
-            <ChoiceTile href="/anger" ariaLabel="Anger" className="group">
-              <Image
-                src="/assets/webflow/images/anger.gif"
-                alt=""
-                width={256}
-                height={126}
-                className="group-hover:hidden"
-                unoptimized
-                priority
-              />
-              <Image
-                src="/assets/webflow/images/cooltext442316558388593.gif"
-                alt=""
-                width={256}
-                height={126}
-                className="hidden group-hover:block"
-                unoptimized
-                priority
-              />
-            </ChoiceTile>
-          </div>
-
-          {/* Bottom-right: Tender */}
-          <div className="pointer-events-auto flex items-end justify-end">
-            <ChoiceTile href="/tender" ariaLabel="Tender" className="group">
-              <Image
-                src="/assets/webflow/images/tender.gif"
-                alt=""
-                width={282}
-                height={124}
-                className="group-hover:hidden"
-                unoptimized
-                priority
-              />
-              <Image
-                src="/assets/webflow/images/tender-pink.gif"
-                alt=""
-                width={282}
-                height={124}
-                className="hidden group-hover:block"
-                unoptimized
-                priority
-              />
-            </ChoiceTile>
-          </div>
+          {buttons.map((button: any) => {
+            const layout = BUTTON_LAYOUT[button._key];
+            if (!layout) return null;
+            const defaultUrl = urlFor(button.defaultImage).url();
+            const hoverUrl = urlFor(button.hoverImage).url();
+            return (
+              <div key={button._key} className={layout.desktopPosition}>
+                <ChoiceTile
+                  href={button.href}
+                  ariaLabel={button.label}
+                  className="group"
+                >
+                  <Image
+                    src={defaultUrl}
+                    alt={button.defaultImage?.alt ?? ""}
+                    width={layout.desktopWidth}
+                    height={layout.desktopHeight}
+                    className="group-hover:hidden"
+                    unoptimized
+                    priority
+                  />
+                  <Image
+                    src={hoverUrl}
+                    alt={button.hoverImage?.alt ?? ""}
+                    width={layout.desktopWidth}
+                    height={layout.desktopHeight}
+                    className="hidden group-hover:block"
+                    unoptimized
+                    priority
+                  />
+                </ChoiceTile>
+              </div>
+            );
+          })}
         </div>
 
         {/* Mobile layout: 2x2 grid */}
         <div className="grid h-full grid-cols-2 grid-rows-2 md:hidden">
-          <div className="pointer-events-auto flex items-start justify-start pt-[20vh] pl-[5vw]">
-            <ChoiceTile href="/denial" ariaLabel="Denial" className="group">
-              <img
-                src="/assets/webflow/images/denial.gif"
-                alt=""
-                className="h-auto w-[66vw] max-w-[275px] group-hover:hidden group-[.tapped]:hidden"
-              />
-              <img
-                src="/assets/webflow/images/denial-pink-2.gif"
-                alt=""
-                className="hidden h-auto w-[66vw] max-w-[275px] group-hover:block group-[.tapped]:block"
-              />
-            </ChoiceTile>
-          </div>
-
-          <div className="pointer-events-auto flex items-start justify-end">
-            <ChoiceTile href="/bargaining" ariaLabel="Bargaining" className="group">
-              <img
-                src="/assets/webflow/images/bargaining.gif"
-                alt=""
-                className="h-auto w-[56vw] max-w-[300px] group-hover:hidden group-[.tapped]:hidden"
-              />
-              <img
-                src="/assets/webflow/images/bargaining-water.png"
-                alt=""
-                className="hidden h-auto w-[64vw] max-w-[340px] group-hover:block group-[.tapped]:block"
-              />
-            </ChoiceTile>
-          </div>
-
-          <div className="pointer-events-auto flex items-end justify-start pb-[17vh] -ml-[2vw]">
-            <ChoiceTile href="/anger" ariaLabel="Anger" className="group">
-              <img
-                src="/assets/webflow/images/anger.gif"
-                alt=""
-                className="h-auto w-[42vw] max-w-[170px] group-hover:hidden group-[.tapped]:hidden"
-              />
-              <img
-                src="/assets/webflow/images/cooltext442316558388593.gif"
-                alt=""
-                className="hidden h-auto w-[42vw] max-w-[170px] group-hover:block group-[.tapped]:block"
-              />
-            </ChoiceTile>
-          </div>
-
-          <div className="pointer-events-auto flex items-end justify-end">
-            <ChoiceTile href="/tender" ariaLabel="Tender" className="group">
-              <img
-                src="/assets/webflow/images/tender.gif"
-                alt=""
-                className="h-auto w-[24vw] max-w-[95px] group-hover:hidden group-[.tapped]:hidden"
-              />
-              <img
-                src="/assets/webflow/images/tender-pink.gif"
-                alt=""
-                className="hidden h-auto w-[24vw] max-w-[95px] group-hover:block group-[.tapped]:block"
-              />
-            </ChoiceTile>
-          </div>
+          {buttons.map((button: any) => {
+            const layout = BUTTON_LAYOUT[button._key];
+            if (!layout) return null;
+            const defaultUrl = urlFor(button.defaultImage).url();
+            const hoverUrl = urlFor(button.hoverImage).url();
+            return (
+              <div key={button._key} className={layout.mobilePosition}>
+                <ChoiceTile
+                  href={button.href}
+                  ariaLabel={button.label}
+                  className="group"
+                >
+                  <img
+                    src={defaultUrl}
+                    alt={button.defaultImage?.alt ?? ""}
+                    className={`${layout.mobileClass} group-hover:hidden group-[.tapped]:hidden`}
+                  />
+                  <img
+                    src={hoverUrl}
+                    alt={button.hoverImage?.alt ?? ""}
+                    className={`hidden ${layout.mobileHoverClass} group-hover:block group-[.tapped]:block`}
+                  />
+                </ChoiceTile>
+              </div>
+            );
+          })}
         </div>
       </div>
     </main>

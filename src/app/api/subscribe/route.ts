@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { appendRow } from "@/lib/google-sheets";
+import { appendRow, emailExists } from "@/lib/google-sheets";
 
 const SPREADSHEET_ID = process.env.GOOGLE_EMAILS_SPREADSHEET_ID!;
+
+// In-memory store for dev mode (resets on server restart)
+const devModeEmails = new Set<string>();
 
 export async function POST(request: Request) {
   try {
@@ -23,10 +26,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // If Google Sheets is not configured, just log and succeed (for development)
+    // If Google Sheets is not configured, use in-memory store (for development)
     if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_EMAILS_SPREADSHEET_ID) {
+      const normalizedEmail = email.toLowerCase().trim();
+      if (devModeEmails.has(normalizedEmail)) {
+        return NextResponse.json({ success: true, message: "Already subscribed" });
+      }
+      devModeEmails.add(normalizedEmail);
       console.log("📧 Email subscription (dev mode):", email);
-      return NextResponse.json({ success: true, message: "Subscribed (dev mode)" });
+      return NextResponse.json({ success: true });
+    }
+
+    // Check if email already exists
+    const exists = await emailExists(SPREADSHEET_ID, email);
+    if (exists) {
+      // Still return success - user doesn't need to know they were already subscribed
+      return NextResponse.json({ success: true, message: "Already subscribed" });
     }
 
     // Append email to Google Sheet with timestamp

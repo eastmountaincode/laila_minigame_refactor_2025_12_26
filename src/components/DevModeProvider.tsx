@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 // Set to false for production - disables dev mode entirely
-const ENABLE_DEV_MODE = false;
+const ENABLE_DEV_MODE = true;
 
 const DevModeContext = createContext(false);
 

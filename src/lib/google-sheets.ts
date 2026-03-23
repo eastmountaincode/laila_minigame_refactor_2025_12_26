@@ -27,10 +27,56 @@ export async function getSheetData(spreadsheetId: string, range: string) {
 }
 
 export async function appendRow(spreadsheetId: string, range: string, values: string[]) {
-  await sheets.spreadsheets.values.append({
+  // Find the first empty row by getting all data in column A
+  const data = await getSheetData(spreadsheetId, 'Sheet1!A:A');
+  const firstEmptyRow = (data?.length ?? 0) + 1;
+
+  // Write to the specific row
+  await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range,
+    range: `Sheet1!A${firstEmptyRow}:B${firstEmptyRow}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [values] },
   });
+}
+
+export async function emailExists(spreadsheetId: string, email: string): Promise<boolean> {
+  const data = await getSheetData(spreadsheetId, 'Sheet1!A:A');
+  if (!data) return false;
+
+  const normalizedEmail = email.toLowerCase().trim();
+  return data.some(row => row[0]?.toLowerCase().trim() === normalizedEmail);
+}
+
+export async function deleteEmail(spreadsheetId: string, email: string): Promise<boolean> {
+  const data = await getSheetData(spreadsheetId, 'Sheet1!A:A');
+  if (!data) return false;
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const rowIndex = data.findIndex(row => row[0]?.toLowerCase().trim() === normalizedEmail);
+
+  if (rowIndex === -1) return false;
+
+  // Get the sheet ID (needed for batchUpdate)
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+  const sheetId = spreadsheet.data.sheets?.[0]?.properties?.sheetId ?? 0;
+
+  // Delete the row
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [{
+        deleteDimension: {
+          range: {
+            sheetId,
+            dimension: 'ROWS',
+            startIndex: rowIndex,
+            endIndex: rowIndex + 1,
+          },
+        },
+      }],
+    },
+  });
+
+  return true;
 }
