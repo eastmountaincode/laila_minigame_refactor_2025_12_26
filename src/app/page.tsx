@@ -1,4 +1,4 @@
-import { BackgroundVideo } from "@/components/BackgroundVideo";
+import { BackgroundMedia } from "@/components/BackgroundMedia";
 import { ChoiceTile } from "@/components/ChoiceTile";
 import Image from "next/image";
 import { sanityFetch } from "@/sanity/lib/fetch";
@@ -59,29 +59,25 @@ export default async function Home() {
     tags: ["homepage"],
   });
 
-  // Fallback to local assets if Sanity data isn't available yet
-  const heroImageUrl = data?.heroImage?.asset?.url;
+  const mediaType = data?.backgroundMediaType ?? "video";
+  const mediaUrl =
+    mediaType === "video"
+      ? data?.backgroundVideo?.asset?.url
+      : data?.backgroundImage?.asset?.url;
   const buttons = data?.choiceButtons ?? [];
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-black text-white">
-      <BackgroundVideo
-        className="z-0"
-        posterSrc={
-          heroImageUrl ??
-          "/assets/webflow/videos/Swirl-Option-3-video-840p-2-poster-00001.jpg"
-        }
-        sources={[
-          {
-            src: "/assets/webflow/videos/Swirl-Option-3-video-840p-2-transcode.webm",
-            type: "video/webm",
-          },
-          {
-            src: "/assets/webflow/videos/Swirl-Option-3-video-840p-2-transcode.mp4",
-            type: "video/mp4",
-          },
-        ]}
-      />
+      {mediaUrl && (
+        <BackgroundMedia
+          className="z-0"
+          type={mediaType}
+          src={mediaUrl}
+          {...(mediaType === "image" && {
+            alt: data?.backgroundImage?.alt ?? "",
+          })}
+        />
+      )}
 
       <div className="pointer-events-none fixed inset-0 z-10 bg-black/15" />
 
@@ -132,34 +128,40 @@ export default async function Home() {
           })}
         </div>
 
-        {/* Mobile layout: 2x2 grid */}
-        <div className="grid h-full grid-cols-2 grid-rows-2 md:hidden">
-          {buttons.map((button: any) => {
-            const layout = BUTTON_LAYOUT[button._key];
-            if (!layout) return null;
-            const defaultUrl = urlFor(button.defaultImage).url();
-            const hoverUrl = urlFor(button.hoverImage).url();
-            return (
-              <div key={button._key} className={layout.mobilePosition}>
-                <ChoiceTile
-                  href={button.href}
-                  ariaLabel={button.label}
-                  className="group"
-                >
-                  <img
-                    src={defaultUrl}
-                    alt={button.defaultImage?.alt ?? ""}
-                    className={`${layout.mobileClass} group-hover:hidden group-[.tapped]:hidden`}
-                  />
-                  <img
-                    src={hoverUrl}
-                    alt={button.hoverImage?.alt ?? ""}
-                    className={`hidden ${layout.mobileHoverClass} group-hover:block group-[.tapped]:block`}
-                  />
-                </ChoiceTile>
-              </div>
-            );
-          })}
+        {/* Mobile layout: 2x2 centered grid */}
+        <div className="flex h-full flex-col items-center justify-between py-[8vh] md:hidden">
+          {/* Top two */}
+          <div className="flex flex-col items-center gap-12">
+            {buttons.slice(0, 2).map((button: any) => {
+              if (!BUTTON_LAYOUT[button._key]) return null;
+              const defaultUrl = urlFor(button.defaultImage).url();
+              const hoverUrl = urlFor(button.hoverImage).url();
+              return (
+                <div key={button._key} className="pointer-events-auto">
+                  <ChoiceTile href={button.href} ariaLabel={button.label} className="group">
+                    <img src={defaultUrl} alt={button.defaultImage?.alt ?? ""} className="h-auto w-[50vw] max-w-[220px] group-hover:hidden group-[.tapped]:hidden" />
+                    <img src={hoverUrl} alt={button.hoverImage?.alt ?? ""} className="hidden h-auto w-[50vw] max-w-[220px] group-hover:block group-[.tapped]:block" />
+                  </ChoiceTile>
+                </div>
+              );
+            })}
+          </div>
+          {/* Bottom two */}
+          <div className="flex flex-col items-center gap-12">
+            {buttons.slice(2, 4).map((button: any) => {
+              if (!BUTTON_LAYOUT[button._key]) return null;
+              const defaultUrl = urlFor(button.defaultImage).url();
+              const hoverUrl = urlFor(button.hoverImage).url();
+              return (
+                <div key={button._key} className="pointer-events-auto">
+                  <ChoiceTile href={button.href} ariaLabel={button.label} className="group">
+                    <img src={defaultUrl} alt={button.defaultImage?.alt ?? ""} className="h-auto w-[50vw] max-w-[220px] group-hover:hidden group-[.tapped]:hidden" />
+                    <img src={hoverUrl} alt={button.hoverImage?.alt ?? ""} className="hidden h-auto w-[50vw] max-w-[220px] group-hover:block group-[.tapped]:block" />
+                  </ChoiceTile>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </main>

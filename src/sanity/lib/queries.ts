@@ -2,7 +2,14 @@ import { defineQuery } from "next-sanity";
 
 export const HOMEPAGE_QUERY = defineQuery(/* groq */ `
   *[_type == "homepage"][0] {
-    heroImage {
+    backgroundMediaType,
+    backgroundVideo {
+      asset->{
+        _id,
+        url
+      }
+    },
+    backgroundImage {
       asset->{
         _id,
         url,

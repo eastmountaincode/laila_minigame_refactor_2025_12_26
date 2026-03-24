@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 type PopupView = "main" | "confirm";
 
@@ -229,14 +230,14 @@ export default function CompletePage() {
             >
               <button
                 type="button"
-                onClick={() => router.push("/s2")}
+                onClick={() => setPopupView("main")}
                 className="h-[22px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black md:h-[35px] md:w-[120px] md:text-[20px]"
               >
                 I want it
               </button>
               <button
                 type="button"
-                onClick={() => setPopupView("main")}
+                onClick={() => router.push("/")}
                 className="h-[22px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black md:h-[35px] md:w-[120px] md:text-[20px]"
               >
                 Don&apos;t want
@@ -245,6 +246,18 @@ export default function CompletePage() {
           </>
         )}
       </div>
+
+      {/* Home icon */}
+      <Link href="/" className="fixed bottom-6 left-1/2 z-20 -translate-x-1/2">
+        <Image
+          src="/assets/webflow/images/home_icon.gif"
+          alt="Home"
+          width={96}
+          height={96}
+          className="w-14 md:w-20 h-auto"
+          unoptimized
+        />
+      </Link>
     </main>
   );
 }
