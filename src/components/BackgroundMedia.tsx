@@ -8,13 +8,14 @@ type BackgroundMediaProps = {
 export function BackgroundMedia(props: BackgroundMediaProps) {
   return (
     <div
+      data-bg-media
       className={["fixed inset-0 z-0", props.className]
         .filter(Boolean)
         .join(" ")}
     >
       {props.type === "video" ? (
         <video
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain md:scale-125 translate-y-[0%] md:-translate-y-[3%]"
           autoPlay
           muted
           loop
@@ -25,7 +26,7 @@ export function BackgroundMedia(props: BackgroundMediaProps) {
         />
       ) : (
         <img
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain md:scale-125 md:-translate-y-[5%]"
           src={props.src}
           alt={props.alt ?? ""}
         />
