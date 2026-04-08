@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { TypedText } from "@/components/TypedText";
+import { TypedText } from "@/components/denial/TypedText";
 
 // Adjust these to move the entire Y/Rose/N group as one unit
 // Desktop

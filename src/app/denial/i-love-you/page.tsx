@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { TypedText } from "@/components/TypedText";
+import { TypedText } from "@/components/denial/TypedText";
 
 export default function ILoveYouPage() {
   return (

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { TypedText } from "@/components/TypedText";
+import { TypedText } from "@/components/denial/TypedText";
 
 // ===========================================
 // FLOWER POSITION - ADJUST THESE VALUES

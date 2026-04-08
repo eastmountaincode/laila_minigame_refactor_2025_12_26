@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ConsentModal } from "@/components/ConsentModal";
-import { WebcamMotion } from "@/components/webcam";
+import { ConsentModal } from "@/components/denial/ConsentModal";
+import { WebcamMotion } from "@/components/denial/webcam";
 
 // Adjust these values to match Webflow styling
 const FONT_SIZE = "45px";

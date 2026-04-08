@@ -5,20 +5,24 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
-type PopupView = "main" | "confirm";
+const WIN95_FONT = `"Pixelated MS Sans Serif", Arial, sans-serif`;
 
-type FinalPopupProps = {
-  onComplete?: () => void;
+const CLOSE_ICON = `url("data:image/svg+xml;charset=utf-8,%3Csvg width='8' height='7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M0 0h2v1h1v1h2V1h1V0h2v1H7v1H6v1H5v1h1v1h1v1h1v1H6V6H5V5H3v1H2v1H0V6h1V5h1V4h1V3H2V2H1V1H0V0z' fill='%23000'/%3E%3C/svg%3E")`;
+const HELP_ICON = `url("data:image/svg+xml;charset=utf-8,%3Csvg width='6' height='9' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23000' d='M0 1h2v2H0zM1 0h4v1H1zM4 1h2v2H4zM3 3h2v1H3zM2 4h2v2H2zM2 7h2v2H2z'/%3E%3C/svg%3E")`;
+
+const playClick = () => {
+  new Audio("/assets/win95/click.mp3").play().catch(() => {});
 };
 
-export function FinalPopup({ onComplete }: FinalPopupProps) {
+type PopupView = "main" | "confirm";
+
+export function FinalPopup() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [popupView, setPopupView] = useState<PopupView>("main");
 
-  // Draggable state
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -39,8 +43,6 @@ export function FinalPopup({ onComplete }: FinalPopupProps) {
         throw new Error("Failed to subscribe");
       }
 
-      onComplete?.();
-      // Redirect to i-love-you page on success
       router.push("/denial/i-love-you");
     } catch {
       setStatus("error");
@@ -48,79 +50,97 @@ export function FinalPopup({ onComplete }: FinalPopupProps) {
     }
   };
 
-  // Mouse handlers
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Don't drag if clicking on input or button
-    if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'BUTTON') {
-      return;
-    }
+    if ((e.target as HTMLElement).closest("input, button")) return;
     setIsDragging(true);
-    dragOffset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    };
+    dragOffset.current = { x: e.clientX - position.x, y: e.clientY - position.y };
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return;
-    setPosition({
-      x: e.clientX - dragOffset.current.x,
-      y: e.clientY - dragOffset.current.y,
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Touch handlers
   const handleTouchStart = (e: React.TouchEvent) => {
-    // Don't drag if touching input or button
     const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('input') || target.closest('button')) {
-      return;
-    }
+    if (target.closest("input, button")) return;
     e.preventDefault();
     const touch = e.touches[0];
     setIsDragging(true);
-    dragOffset.current = {
-      x: touch.clientX - position.x,
-      y: touch.clientY - position.y,
-    };
+    dragOffset.current = { x: touch.clientX - position.x, y: touch.clientY - position.y };
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    setPosition({
-      x: touch.clientX - dragOffset.current.x,
-      y: touch.clientY - dragOffset.current.y,
-    });
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-  };
-
-  // Add global listeners for drag
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleTouchMove, { passive: false });
-      window.addEventListener('touchend', handleTouchEnd);
-    }
+    if (!isDragging) return;
+
+    const onMouseMove = (e: MouseEvent) => {
+      setPosition({ x: e.clientX - dragOffset.current.x, y: e.clientY - dragOffset.current.y });
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      setPosition({ x: touch.clientX - dragOffset.current.x, y: touch.clientY - dragOffset.current.y });
+    };
+    const onEnd = () => setIsDragging(false);
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onEnd);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onEnd);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onEnd);
     };
   }, [isDragging]);
 
+  const titleBarBtnStyle: React.CSSProperties = {
+    display: "block",
+    background: "silver",
+    boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+    border: "none",
+    minWidth: 16,
+    minHeight: 14,
+    padding: 0,
+    cursor: "pointer",
+    backgroundRepeat: "no-repeat",
+  };
+
+  const dialogBtnStyle: React.CSSProperties = {
+    background: "silver",
+    border: "none",
+    boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+    padding: "0 12px",
+    fontSize: 11,
+    fontFamily: WIN95_FONT,
+    WebkitFontSmoothing: "none",
+    cursor: "pointer",
+    minWidth: 75,
+    minHeight: 23,
+    color: "#222",
+  };
+
+  const inputStyle: React.CSSProperties = {
+    background: "#fff",
+    border: "none",
+    boxShadow: "inset -1px -1px #fff, inset 1px 1px grey, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a",
+    padding: "3px 4px",
+    fontSize: 11,
+    fontFamily: WIN95_FONT,
+    WebkitFontSmoothing: "none",
+    color: "#222",
+    width: "100%",
+    height: 21,
+    outline: "none",
+  };
+
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-black">
+      <style>{`
+        .win95-btn:active {
+          box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey !important;
+        }
+        .win95-btn-default:active {
+          box-shadow: inset 2px 2px #0a0a0a, inset -1px -1px #0a0a0a, inset -2px -2px #fff, inset 3px 3px grey, inset -3px -3px #dfdfdf !important;
+        }
+      `}</style>
+
       {/* Animated GIF Background */}
       <div className="absolute inset-0 select-none">
         <Image
@@ -135,121 +155,153 @@ export function FinalPopup({ onComplete }: FinalPopupProps) {
         />
       </div>
 
-      {/* Dialog Box - draggable container */}
+      {/* Win95 Dialog */}
       <div
-        className="relative z-10 w-[80vw] max-w-[320px] cursor-grab select-none active:cursor-grabbing md:w-auto md:max-w-[550px]"
         style={{
+          background: "silver",
+          boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff",
+          padding: 3,
+          minWidth: 300,
+          fontFamily: WIN95_FONT,
+          fontSize: 11,
+          WebkitFontSmoothing: "none",
+          userSelect: "none",
+          cursor: isDragging ? "grabbing" : "grab",
           transform: `translate(${position.x}px, ${position.y}px)`,
+          zIndex: 10,
         }}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
-        {/* Dialog background image */}
-        <Image
-          src="/assets/webflow/images/yellow-triangle-pop-up.png"
-          alt=""
-          width={1790}
-          height={400}
-          className="h-auto w-full md:h-[170px] md:object-fill"
-          unoptimized
-          priority
-          draggable={false}
-        />
+        {/* Title bar */}
+        <div
+          style={{
+            background: "linear-gradient(90deg, navy, #1084d0)",
+            color: "#fff",
+            fontWeight: "bold",
+            fontSize: 11,
+            fontFamily: WIN95_FONT,
+            padding: "3px 2px 3px 3px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span style={{ letterSpacing: 0, marginRight: 24 }}>
+            {popupView === "main" ? "Attention: You chose to bargain." : "Wait!"}
+          </span>
+          <div style={{ display: "flex" }}>
+            <button
+              className="win95-btn"
+              style={{ ...titleBarBtnStyle, backgroundImage: HELP_ICON, backgroundPosition: "top 2px left 5px" }}
+              aria-label="Help"
+              tabIndex={-1}
+            />
+            <button
+              className="win95-btn"
+              style={{ ...titleBarBtnStyle, backgroundImage: CLOSE_ICON, backgroundPosition: "top 3px left 4px", marginLeft: 2 }}
+              aria-label="Close"
+              tabIndex={-1}
+            />
+          </div>
+        </div>
 
-        {popupView === "main" ? (
-          <>
-            {/* Title bar text */}
-            <div
-              className="absolute left-0 right-0 top-[0%] text-center font-pixel text-[12px] text-white md:top-[1%] md:text-[20px]"
-            >
-              Attention: You chose to bargain.
-            </div>
+        {/* Body */}
+        <div style={{ margin: 8 }}>
+          {popupView === "main" ? (
+            <>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "8px 4px" }}>
+                <img
+                  src="/assets/win95/warning_icon.png"
+                  alt=""
+                  width={32}
+                  height={32}
+                  style={{ flexShrink: 0, imageRendering: "pixelated" }}
+                />
+                <p style={{ margin: 0, paddingTop: 6, color: "#222" }}>
+                  Have you mastered your desire for control?
+                </p>
+              </div>
 
-            <div
-              className="absolute left-0 right-0 text-center font-pixel text-[10px] text-black md:text-[18px]"
-              style={{ top: "24%" }}
-            >
-              Have you mastered your desire for control?
-            </div>
+              <form onSubmit={handleSubmit} style={{ padding: "4px 4px 0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <label style={{ color: "#222", whiteSpace: "nowrap" }}>Email:</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="enter your email"
+                    required
+                    style={{ ...inputStyle, cursor: "text" }}
+                  />
+                </div>
 
-            {/* Form with input and button side by side on mobile */}
-            <form
-              id="email-form"
-              onSubmit={handleSubmit}
-              className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 md:flex-col md:gap-2"
-              style={{ top: "45%" }}
-            >
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="enter your email"
-                required
-                className="w-[90px] cursor-text border-none bg-white px-1 py-0 font-pixel-alt text-[10px] text-black placeholder:text-[10px] md:w-[250px] md:text-[18px] md:placeholder:text-[24px]"
-                style={{ outline: "2px dotted #cc0000" }}
-              />
-              <div className="flex gap-2">
+                <div style={{ display: "flex", justifyContent: "center", gap: 6, padding: "4px 0 4px" }}>
+                  <button
+                    className="win95-btn win95-btn-default"
+                    type="submit"
+                    disabled={status === "loading"}
+                    onClick={playClick}
+                    style={{
+                      ...dialogBtnStyle,
+                      boxShadow: "inset -2px -2px #0a0a0a, inset 1px 1px #0a0a0a, inset 2px 2px #fff, inset -3px -3px grey, inset 3px 3px #dfdfdf",
+                      opacity: status === "loading" ? 0.5 : 1,
+                    }}
+                  >
+                    {status === "loading" ? "..." : "Submit"}
+                  </button>
+                  <button
+                    className="win95-btn"
+                    type="button"
+                    onClick={() => { playClick(); setPopupView("confirm"); }}
+                    style={dialogBtnStyle}
+                  >
+                    No
+                  </button>
+                </div>
+              </form>
+
+              {status === "error" && (
+                <p style={{ color: "red", margin: "4px 4px 0", fontSize: 11 }}>{errorMessage}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "8px 4px" }}>
+                <img
+                  src="/assets/win95/warning_icon.png"
+                  alt=""
+                  width={32}
+                  height={32}
+                  style={{ flexShrink: 0, imageRendering: "pixelated" }}
+                />
+                <p style={{ margin: 0, paddingTop: 6, color: "#222" }}>
+                  Are you sure you don&apos;t want my gift?
+                </p>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "center", gap: 6, padding: "8px 0 4px" }}>
                 <button
-                  type="submit"
-                  disabled={status === "loading"}
-                  className="h-[28px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black disabled:opacity-50 md:h-[35px] md:w-[120px] md:text-[20px]"
+                  className="win95-btn win95-btn-default"
+                  onClick={() => { playClick(); setPopupView("main"); }}
+                  style={{
+                    ...dialogBtnStyle,
+                    boxShadow: "inset -2px -2px #0a0a0a, inset 1px 1px #0a0a0a, inset 2px 2px #fff, inset -3px -3px grey, inset 3px 3px #dfdfdf",
+                  }}
                 >
-                  {status === "loading" ? "..." : "Submit"}
+                  I want it
                 </button>
                 <button
-                  type="button"
-                  onClick={() => setPopupView("confirm")}
-                  className="h-[28px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black md:h-[35px] md:w-[120px] md:text-[20px]"
+                  className="win95-btn"
+                  onClick={() => { playClick(); router.push("/"); }}
+                  style={dialogBtnStyle}
                 >
-                  No
+                  Don&apos;t want
                 </button>
               </div>
-            </form>
-
-            {status === "error" && (
-              <div className="absolute left-1/2 -translate-x-1/2 font-pixel text-red-600" style={{ top: "150%", fontSize: "24px" }}>
-                {errorMessage}
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            {/* Confirmation popup content */}
-            <div
-              className="absolute left-0 right-0 top-[0%] text-center font-pixel text-[12px] text-white md:top-[1%] md:text-[20px]"
-            >
-              Wait!
-            </div>
-
-            <div
-              className="absolute left-0 right-0 text-center font-pixel text-[10px] text-black md:text-[18px]"
-              style={{ top: "24%" }}
-            >
-              Are you sure you don&apos;t want my gift?
-            </div>
-
-            {/* Yes/No buttons */}
-            <div
-              className="absolute left-1/2 flex -translate-x-1/2 gap-2"
-              style={{ top: "50%" }}
-            >
-              <button
-                type="button"
-                onClick={() => setPopupView("main")}
-                className="h-[28px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black md:h-[35px] md:w-[120px] md:text-[20px]"
-              >
-                I want it
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push("/")}
-                className="h-[28px] w-[70px] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[11px] text-black md:h-[35px] md:w-[120px] md:text-[20px]"
-              >
-                Don&apos;t want
-              </button>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Home icon */}
@@ -259,10 +311,10 @@ export function FinalPopup({ onComplete }: FinalPopupProps) {
           alt="Home"
           width={96}
           height={96}
-          className="w-14 md:w-16 h-auto"
+          className="w-12 md:w-14 h-auto"
           unoptimized
         />
-        <span className="text-white text-xs md:text-sm mt-1" style={{ fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif', WebkitFontSmoothing: "none" }}>HOME</span>
+        <span className="text-white text-sm md:text-md -mt-3 ml-1 tracking-[0.1em]" style={{ fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif', WebkitFontSmoothing: "none" }}>HOME</span>
       </Link>
     </main>
   );

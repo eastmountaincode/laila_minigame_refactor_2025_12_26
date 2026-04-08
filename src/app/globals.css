@@ -96,3 +96,12 @@ body.dev-mode [data-bg-media] > * {
 .animate-blink {
   animation: blink 1s infinite;
 }
+
+/* Win95 button pressed state */
+.win95-btn:active {
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey !important;
+}
+
+.win95-btn-default:active {
+  box-shadow: inset 2px 2px #0a0a0a, inset -1px -1px #0a0a0a, inset -2px -2px #fff, inset 3px 3px grey, inset -3px -3px #dfdfdf !important;
+}

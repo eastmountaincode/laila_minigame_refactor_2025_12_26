@@ -1,16 +1,18 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useDevMode } from "@/components/DevModeProvider";
 
-type DrawingCanvasProps = {
-  onComplete: () => void;
+const playClick = () => {
+  new Audio("/assets/win95/click.mp3").play().catch(() => {});
 };
 
 // Drawing text - you can customize this with your own content
 const DRAWING_TEXT = "Flash flood you drown. But it's the ocean inside of my head. I feed the mountain. My affirmations are avalanches. And it's so not me to want it to bleed. But there's something sweet. There's a ledger they'll make with your name. Will I do anything? I'll do anything. Apologize. I never wanted to scare you. A winded sigh. Dry hurricanes all around the truth. And it's so not me to want it to bleed. But there's something sweet. There's a ledger they'll make with your name. Will I do anything? I'll do anything. ";
 
-export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
+export function DrawingCanvas() {
+  const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -19,6 +21,50 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
   const [showNotGoodEnoughButtons, setShowNotGoodEnoughButtons] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const devMode = useDevMode();
+
+  // Draggable state for "not good enough" dialog
+  const [dialogPos, setDialogPos] = useState({ x: 0, y: 0 });
+  const [isDraggingDialog, setIsDraggingDialog] = useState(false);
+  const dialogDragOffset = useRef({ x: 0, y: 0 });
+
+  const handleDialogMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    setIsDraggingDialog(true);
+    dialogDragOffset.current = { x: e.clientX - dialogPos.x, y: e.clientY - dialogPos.y };
+  };
+
+  const handleDialogTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    setIsDraggingDialog(true);
+    dialogDragOffset.current = { x: touch.clientX - dialogPos.x, y: touch.clientY - dialogPos.y };
+  };
+
+  useEffect(() => {
+    if (!isDraggingDialog) return;
+
+    const onMouseMove = (e: MouseEvent) => {
+      setDialogPos({ x: e.clientX - dialogDragOffset.current.x, y: e.clientY - dialogDragOffset.current.y });
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      setDialogPos({ x: touch.clientX - dialogDragOffset.current.x, y: touch.clientY - dialogDragOffset.current.y });
+    };
+    const onEnd = () => setIsDraggingDialog(false);
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onEnd);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onEnd);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [isDraggingDialog]);
 
   const positionRef = useRef({ x: 0, y: 0 });
   const counterRef = useRef(0);
@@ -223,68 +269,140 @@ export function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
       {/* "This is what I look like" button */}
       {showThisIsMe && !showNotGoodEnough && (
         <button
-          onClick={() => setShowNotGoodEnough(true)}
-          className="fixed top-1/2 right-0 left-0 mx-auto -translate-y-1/2 cursor-pointer text-xl text-black md:top-auto md:bottom-[3%] md:translate-y-0"
+          onClick={() => { playClick(); setShowNotGoodEnough(true); }}
+          className="win95-btn fixed bottom-[10%] left-1/2 -translate-x-1/2 cursor-pointer md:bottom-[3%]"
           style={{
-            backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: '300px 50px',
-            width: '400px',
-            height: '100px',
-            fontFamily: 'Pixeltimesnewroman, sans-serif',
-            fontSize: '20px',
+            background: "silver",
+            border: "none",
+            boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+            padding: "4px 20px",
+            fontSize: 11,
+            fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
+            WebkitFontSmoothing: "none",
+            minHeight: 23,
+            color: "#222",
+            outline: "1px dotted #000",
+            outlineOffset: "-4px",
           }}
         >
           this is what i look like
         </button>
       )}
 
-      {/* "That's not good enough" message with buttons */}
+      {/* "That's not good enough" Win95 dialog */}
       {showNotGoodEnough && (
-        <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${devMode ? 'border-2 border-red-500' : ''}`}>
-          <div className={`relative ${devMode ? 'border-2 border-blue-500' : ''}`}>
-            <img
-              src="/assets/webflow/images/thats-not-good-enough-no-buttons.png"
-              alt="That's not good enough"
-              className={`max-w-[450px] md:w-auto md:max-w-[600px] ${devMode ? 'border-2 border-green-500' : ''}`}
-            />
-            {/* Buttons positioned on the popup */}
-            {showNotGoodEnoughButtons && (
-              <div
-                className={`absolute left-1/2 -translate-x-1/2 flex flex-row justify-center gap-2 md:gap-4 ${devMode ? 'border-2 border-yellow-500' : ''}`}
-                style={{ bottom: "39%", left: "52%", width: "100%" }}
-              >
-                <button
-                  onClick={onComplete}
-                  className={`w-[110px] h-[30px] md:w-[130px] md:h-[40px] cursor-pointer text-black ${devMode ? 'border-2 border-pink-500' : ''}`}
-                  style={{
-                    backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: 'contain',
-                    fontFamily: 'Pixeltimesnewroman, sans-serif',
-                    fontSize: '16px',
-                  }}
-                >
-                  I did my best
-                </button>
-                <button
-                  onClick={handleTryAgain}
-                  className={`w-[110px] h-[30px] md:w-[130px] md:h-[40px] cursor-pointer text-black ${devMode ? 'border-2 border-pink-500' : ''}`}
-                  style={{
-                    backgroundImage: 'url(/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png)',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: 'contain',
-                    fontFamily: 'Pixeltimesnewroman, sans-serif',
-                    fontSize: '16px',
-                  }}
-                >
-                  Try Again
-                </button>
+        <div
+          className="absolute left-1/2 top-1/2 z-20"
+          style={{
+            transform: `translate(calc(-50% + ${dialogPos.x}px), calc(-50% + ${dialogPos.y}px))`,
+          }}
+        >
+          <div
+            style={{
+              background: "silver",
+              boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff",
+              padding: 3,
+              minWidth: 280,
+              fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
+              fontSize: 11,
+              WebkitFontSmoothing: "none",
+              userSelect: "none",
+              cursor: isDraggingDialog ? "grabbing" : "grab",
+            }}
+            onMouseDown={handleDialogMouseDown}
+            onTouchStart={handleDialogTouchStart}
+          >
+            {/* Title bar */}
+            <div
+              style={{
+                background: "linear-gradient(90deg, navy, #1084d0)",
+                color: "#fff",
+                fontWeight: "bold",
+                fontSize: 11,
+                fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
+                padding: "3px 2px 3px 3px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span style={{ letterSpacing: 0, marginRight: 24 }}>&nbsp;</span>
+              <button
+                className="win95-btn"
+                style={{
+                  display: "block",
+                  background: "silver",
+                  boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+                  border: "none",
+                  minWidth: 16,
+                  minHeight: 14,
+                  padding: 0,
+                  cursor: "pointer",
+                  backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg width='8' height='7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M0 0h2v1h1v1h2V1h1V0h2v1H7v1H6v1H5v1h1v1h1v1h1v1H6V6H5V5H3v1H2v1H0V6h1V5h1V4h1V3H2V2H1V1H0V0z' fill='%23000'/%3E%3C/svg%3E")`,
+                  backgroundPosition: "top 3px left 4px",
+                  backgroundRepeat: "no-repeat",
+                }}
+                aria-label="Close"
+                tabIndex={-1}
+              />
+            </div>
+
+            {/* Body */}
+            <div style={{ margin: 8 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "8px 4px" }}>
+                <img
+                  src="/assets/win95/error_icon.png"
+                  alt=""
+                  width={32}
+                  height={32}
+                  style={{ flexShrink: 0, imageRendering: "pixelated" }}
+                />
+                <p style={{ margin: 0, paddingTop: 6, color: "#222", fontWeight: "bold" }}>
+                  That&apos;s not good enough.
+                </p>
               </div>
-            )}
+
+              {showNotGoodEnoughButtons && (
+                <div style={{ display: "flex", justifyContent: "center", gap: 6, padding: "8px 0 4px" }}>
+                  <button
+                    onClick={() => { playClick(); router.push("/bargaining/treat"); }}
+                    className="win95-btn cursor-pointer"
+                    style={{
+                      background: "silver",
+                      border: "none",
+                      boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+                      padding: "0 12px",
+                      fontSize: 11,
+                      fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
+                      WebkitFontSmoothing: "none",
+                      minWidth: 75,
+                      minHeight: 23,
+                      color: "#222",
+                    }}
+                  >
+                    I did my best
+                  </button>
+                  <button
+                    onClick={() => { playClick(); handleTryAgain(); }}
+                    className="win95-btn cursor-pointer"
+                    style={{
+                      background: "silver",
+                      border: "none",
+                      boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+                      padding: "0 12px",
+                      fontSize: 11,
+                      fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
+                      WebkitFontSmoothing: "none",
+                      minWidth: 75,
+                      minHeight: 23,
+                      color: "#222",
+                    }}
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

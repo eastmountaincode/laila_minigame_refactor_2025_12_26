@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { TypedText } from "./TypedText";
 
-type WorthQuestionProps = {
-  onComplete: () => void;
-};
-
-export function WorthQuestion({ onComplete }: WorthQuestionProps) {
+export function WorthQuestion() {
+  const router = useRouter();
   const [showButtons, setShowButtons] = useState(false);
+
+  const handleNext = () => router.push("/bargaining/complete");
 
   return (
     <div className="fixed inset-0 flex flex-col items-center bg-black">
@@ -44,7 +44,7 @@ export function WorthQuestion({ onComplete }: WorthQuestionProps) {
           {/* Mobile: stacked buttons */}
           <div className="fixed bottom-[8%] left-0 right-0 mx-auto flex w-fit flex-col md:hidden">
             <button
-              onClick={onComplete}
+              onClick={handleNext}
               className="cursor-pointer text-center text-[red] hover:text-[#8B0000]"
               style={{
                 fontFamily: 'Pixeltimesnewroman, sans-serif',
@@ -54,7 +54,7 @@ export function WorthQuestion({ onComplete }: WorthQuestionProps) {
               Anything
             </button>
             <button
-              onClick={onComplete}
+              onClick={handleNext}
               className="cursor-pointer text-center text-[red] hover:text-[#8B0000]"
               style={{
                 fontFamily: 'Pixeltimesnewroman, sans-serif',
@@ -67,7 +67,7 @@ export function WorthQuestion({ onComplete }: WorthQuestionProps) {
 
           {/* Desktop: corner buttons */}
           <button
-            onClick={onComplete}
+            onClick={handleNext}
             className="fixed bottom-4 left-10 hidden cursor-pointer text-center text-[red] hover:text-[#8B0000] md:block"
             style={{
               fontFamily: 'Pixeltimesnewroman, sans-serif',
@@ -78,7 +78,7 @@ export function WorthQuestion({ onComplete }: WorthQuestionProps) {
             Anything
           </button>
           <button
-            onClick={onComplete}
+            onClick={handleNext}
             className="fixed bottom-4 right-4 hidden cursor-pointer text-center text-[red] hover:text-[#8B0000] md:block"
             style={{
               fontFamily: 'Pixeltimesnewroman, sans-serif',

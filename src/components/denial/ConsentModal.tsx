@@ -205,7 +205,7 @@ export function ConsentModal({
                 color: "#222",
               }}
             >
-              Cancel
+              NO
             </button>
           </div>
         </div>

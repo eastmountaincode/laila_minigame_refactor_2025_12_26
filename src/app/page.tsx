@@ -1,57 +1,9 @@
 import { BackgroundMedia } from "@/components/BackgroundMedia";
-import { ChoiceTile } from "@/components/ChoiceTile";
+import { HomeButtons } from "@/components/HomeButtons";
 import Image from "next/image";
 import { sanityFetch } from "@/sanity/lib/fetch";
 import { HOMEPAGE_QUERY, CHOICE_BUTTONS_QUERY } from "@/sanity/lib/queries";
 import { urlFor } from "@/sanity/lib/image";
-
-// Layout config per button — presentation concern, not CMS content
-const BUTTON_LAYOUT: Record<
-  string,
-  {
-    desktopPosition: string;
-    desktopWidth: number;
-    desktopHeight: number;
-    mobilePosition: string;
-    mobileClass: string;
-    mobileHoverClass: string;
-  }
-> = {
-  denial: {
-    desktopPosition: "pointer-events-auto flex items-end justify-start",
-    desktopWidth: 259,
-    desktopHeight: 127,
-    mobilePosition:
-      "pointer-events-auto flex items-start justify-start pt-[20vh] pl-[5vw]",
-    mobileClass: "h-auto w-[66vw] max-w-[275px]",
-    mobileHoverClass: "h-auto w-[66vw] max-w-[275px]",
-  },
-  bargaining: {
-    desktopPosition: "pointer-events-auto flex items-start justify-end",
-    desktopWidth: 482,
-    desktopHeight: 144,
-    mobilePosition: "pointer-events-auto flex items-start justify-end",
-    mobileClass: "h-auto w-[56vw] max-w-[300px]",
-    mobileHoverClass: "h-auto w-[64vw] max-w-[340px]",
-  },
-  anger: {
-    desktopPosition: "pointer-events-auto flex items-start justify-start",
-    desktopWidth: 256,
-    desktopHeight: 126,
-    mobilePosition:
-      "pointer-events-auto flex items-end justify-start pb-[17vh] -ml-[2vw]",
-    mobileClass: "h-auto w-[42vw] max-w-[170px]",
-    mobileHoverClass: "h-auto w-[42vw] max-w-[170px]",
-  },
-  tender: {
-    desktopPosition: "pointer-events-auto flex items-end justify-end",
-    desktopWidth: 282,
-    desktopHeight: 124,
-    mobilePosition: "pointer-events-auto flex items-end justify-end",
-    mobileClass: "h-auto w-[24vw] max-w-[95px]",
-    mobileHoverClass: "h-auto w-[24vw] max-w-[95px]",
-  },
-};
 
 export default async function Home() {
   const data = await sanityFetch<any>({
@@ -93,82 +45,17 @@ export default async function Home() {
 
       {/* Desktop: corners | Mobile: centered column */}
       <div className="pointer-events-none fixed inset-0 z-30 p-[clamp(12px,3vw,36px)]">
-        {/* Desktop layout */}
-        <div className="hidden h-full md:grid md:grid-cols-2 md:grid-rows-2">
-          {buttons.map((button: any) => {
-            const key = button.label?.toLowerCase();
-            const layout = BUTTON_LAYOUT[key];
-            if (!layout) return null;
-            const defaultUrl = urlFor(button.defaultImage).url();
-            const hoverUrl = urlFor(button.hoverImage).url();
-            return (
-              <div key={button._id} className={layout.desktopPosition}>
-                <ChoiceTile
-                  href={button.href}
-                  ariaLabel={button.label}
-                  className="group"
-                >
-                  <Image
-                    src={defaultUrl}
-                    alt={button.defaultImage?.alt ?? ""}
-                    width={layout.desktopWidth}
-                    height={layout.desktopHeight}
-                    className="group-hover:hidden"
-                    unoptimized
-                    priority
-                  />
-                  <Image
-                    src={hoverUrl}
-                    alt={button.hoverImage?.alt ?? ""}
-                    width={layout.desktopWidth}
-                    height={layout.desktopHeight}
-                    className="hidden group-hover:block"
-                    unoptimized
-                    priority
-                  />
-                </ChoiceTile>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Mobile layout: 2x2 centered grid */}
-        <div className="flex h-full flex-col items-center justify-between py-[8vh] md:hidden">
-          {/* Top two */}
-          <div className="flex flex-col items-center gap-12">
-            {buttons.slice(0, 2).map((button: any) => {
-              const key = button.label?.toLowerCase();
-              if (!BUTTON_LAYOUT[key]) return null;
-              const defaultUrl = urlFor(button.defaultImage).url();
-              const hoverUrl = urlFor(button.hoverImage).url();
-              return (
-                <div key={button._id} className="pointer-events-auto">
-                  <ChoiceTile href={button.href} ariaLabel={button.label} className="group">
-                    <img src={defaultUrl} alt={button.defaultImage?.alt ?? ""} className="h-auto w-[50vw] max-w-[220px] group-hover:hidden group-[.tapped]:hidden" />
-                    <img src={hoverUrl} alt={button.hoverImage?.alt ?? ""} className="hidden h-auto w-[50vw] max-w-[220px] group-hover:block group-[.tapped]:block" />
-                  </ChoiceTile>
-                </div>
-              );
-            })}
-          </div>
-          {/* Bottom two */}
-          <div className="flex flex-col items-center gap-12">
-            {buttons.slice(2, 4).map((button: any) => {
-              const key = button.label?.toLowerCase();
-              if (!BUTTON_LAYOUT[key]) return null;
-              const defaultUrl = urlFor(button.defaultImage).url();
-              const hoverUrl = urlFor(button.hoverImage).url();
-              return (
-                <div key={button._id} className="pointer-events-auto">
-                  <ChoiceTile href={button.href} ariaLabel={button.label} className="group">
-                    <img src={defaultUrl} alt={button.defaultImage?.alt ?? ""} className="h-auto w-[50vw] max-w-[220px] group-hover:hidden group-[.tapped]:hidden" />
-                    <img src={hoverUrl} alt={button.hoverImage?.alt ?? ""} className="hidden h-auto w-[50vw] max-w-[220px] group-hover:block group-[.tapped]:block" />
-                  </ChoiceTile>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <HomeButtons
+          buttons={buttons.map((button: any) => ({
+            _id: button._id,
+            label: button.label,
+            href: button.href,
+            defaultImageUrl: urlFor(button.defaultImage).url(),
+            defaultImageAlt: button.defaultImage?.alt ?? "",
+            hoverImageUrl: urlFor(button.hoverImage).url(),
+            hoverImageAlt: button.hoverImage?.alt ?? "",
+          }))}
+        />
       </div>
     </main>
   );
