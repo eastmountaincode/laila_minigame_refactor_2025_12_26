@@ -20,7 +20,7 @@ const MODAL_DELAY = 1500;
 
 export function DenialClient() {
   const [showModal, setShowModal] = useState(false);
-  const [webcamActive, setWebcamActive] = useState(false);
+  const [webcamActive, setWebcamActive] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -32,7 +32,6 @@ export function DenialClient() {
 
   const handleAccept = () => {
     setShowModal(false);
-    setWebcamActive(true);
   };
 
   return (
