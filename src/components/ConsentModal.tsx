@@ -146,7 +146,6 @@ export function ConsentModal({
               }}
               aria-label="Help"
               tabIndex={-1}
-              onClick={playClick}
             />
             {/* Close button */}
             <button
@@ -167,7 +166,6 @@ export function ConsentModal({
               }}
               aria-label="Close"
               tabIndex={-1}
-              onClick={playClick}
             />
           </div>
         </div>

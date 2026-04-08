@@ -253,15 +253,16 @@ export function FinalPopup({ onComplete }: FinalPopupProps) {
       </div>
 
       {/* Home icon */}
-      <Link href="/" className="fixed bottom-6 left-1/2 z-20 -translate-x-1/2">
+      <Link href="/" className="fixed bottom-6 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center">
         <Image
-          src="/assets/webflow/images/home_icon.gif"
+          src="/assets/webflow/images/home_gif.gif"
           alt="Home"
           width={96}
           height={96}
           className="w-14 md:w-20 h-auto"
           unoptimized
         />
+        <span className="text-white font-pixel text-[10px] md:text-xs mt-1">home</span>
       </Link>
     </main>
   );
