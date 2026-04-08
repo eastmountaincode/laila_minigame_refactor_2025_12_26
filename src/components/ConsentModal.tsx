@@ -90,6 +90,9 @@ export function ConsentModal({
         .win95-btn:active {
           box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey !important;
         }
+        .win95-btn-default:active {
+          box-shadow: inset 2px 2px #0a0a0a, inset -1px -1px #0a0a0a, inset -2px -2px #fff, inset 3px 3px grey, inset -3px -3px #dfdfdf !important;
+        }
       `}</style>
 
       {/* Window */}
@@ -184,12 +187,12 @@ export function ConsentModal({
           </div>
           <div style={{ display: "flex", justifyContent: "center", gap: 6, padding: "8px 0 4px" }}>
             <button
-              className="win95-btn"
+              className="win95-btn win95-btn-default"
               onClick={() => { playClick(); onAccept(); }}
               style={{
                 background: "silver",
                 border: "none",
-                boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+                boxShadow: "inset -2px -2px #0a0a0a, inset 1px 1px #0a0a0a, inset 2px 2px #fff, inset -3px -3px grey, inset 3px 3px #dfdfdf",
                 padding: "0 12px",
                 fontSize: 11,
                 fontFamily: WIN95_FONT,
