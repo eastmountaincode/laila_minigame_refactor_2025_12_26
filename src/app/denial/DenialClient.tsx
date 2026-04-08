@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ConsentModal } from "@/components/denial/ConsentModal";
 import { WebcamMotion } from "@/components/denial/webcam";
@@ -21,14 +21,65 @@ const MODAL_DELAY = 1500;
 export function DenialClient() {
   const [showModal, setShowModal] = useState(false);
   const [webcamActive, setWebcamActive] = useState(true);
+  const [flowerPos, setFlowerPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowModal(true);
+      new Audio("/assets/win95/chord.wav").play().catch(() => {});
     }, MODAL_DELAY);
 
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMouseMove = (e: MouseEvent) => {
+      setFlowerPos({ x: e.clientX - dragOffset.current.x, y: e.clientY - dragOffset.current.y });
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      setFlowerPos({ x: touch.clientX - dragOffset.current.x, y: touch.clientY - dragOffset.current.y });
+    };
+    const onEnd = () => setIsDragging(false);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onEnd);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onEnd);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [isDragging]);
+
+  const handleFlowerMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (!flowerPos) {
+      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      setFlowerPos({ x: rect.left, y: rect.top });
+    } else {
+      dragOffset.current = { x: e.clientX - flowerPos.x, y: e.clientY - flowerPos.y };
+    }
+  };
+
+  const handleFlowerTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setIsDragging(true);
+    if (!flowerPos) {
+      dragOffset.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+      setFlowerPos({ x: rect.left, y: rect.top });
+    } else {
+      dragOffset.current = { x: touch.clientX - flowerPos.x, y: touch.clientY - flowerPos.y };
+    }
+  };
 
   const handleAccept = () => {
     setShowModal(false);
@@ -92,12 +143,23 @@ export function DenialClient() {
 
       </div>
 
-      {/* Orchid Image - fixed at bottom right */}
-      <div className="pointer-events-none fixed bottom-0 md:right-50 right-10 z-20">
+      {/* Orchid Image - draggable */}
+      <div
+        className={`z-20 ${!flowerPos ? "bottom-0 md:right-50 right-10" : ""}`}
+        style={{
+          position: "fixed",
+          ...(flowerPos ? { left: flowerPos.x, top: flowerPos.y, bottom: "auto", right: "auto" } : {}),
+          cursor: isDragging ? "grabbing" : "grab",
+          userSelect: "none",
+        }}
+        onMouseDown={handleFlowerMouseDown}
+        onTouchStart={handleFlowerTouchStart}
+      >
         <img
           src="/assets/webflow/images/beautiful-orchid-free-png.webp"
           alt=""
           className="orchid-flower h-auto"
+          draggable={false}
         />
         <style>{`
           .orchid-flower {
