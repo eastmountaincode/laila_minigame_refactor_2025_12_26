@@ -4,9 +4,8 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useDevMode } from "@/components/DevModeProvider";
 
-const playClick = () => {
-  new Audio("/assets/win95/click.mp3").play().catch(() => {});
-};
+import { sounds } from "@/lib/sounds";
+const playClick = sounds.click;
 
 // Drawing text - you can customize this with your own content
 const DRAWING_TEXT = "Flash flood you drown. But it's the ocean inside of my head. I feed the mountain. My affirmations are avalanches. And it's so not me to want it to bleed. But there's something sweet. There's a ledger they'll make with your name. Will I do anything? I'll do anything. Apologize. I never wanted to scare you. A winded sigh. Dry hurricanes all around the truth. And it's so not me to want it to bleed. But there's something sweet. There's a ledger they'll make with your name. Will I do anything? I'll do anything. ";

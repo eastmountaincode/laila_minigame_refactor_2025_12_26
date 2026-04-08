@@ -8,9 +8,8 @@ const HELP_ICON = `url("data:image/svg+xml;charset=utf-8,%3Csvg width='6' height
 
 const WIN95_FONT = `"Pixelated MS Sans Serif", Arial, sans-serif`;
 
-const playClick = () => {
-  new Audio("/assets/win95/click.mp3").play().catch(() => {});
-};
+import { sounds } from "@/lib/sounds";
+const playClick = sounds.click;
 
 interface ConsentModalProps {
   isOpen: boolean;

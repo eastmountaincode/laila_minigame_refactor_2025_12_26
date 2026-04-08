@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ConsentModal } from "@/components/denial/ConsentModal";
 import { WebcamMotion } from "@/components/denial/webcam";
+import { sounds } from "@/lib/sounds";
 
 // Adjust these values to match Webflow styling
 const FONT_SIZE = "45px";
@@ -24,11 +25,10 @@ export function DenialClient() {
   const [flowerPos, setFlowerPos] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
-
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowModal(true);
-      new Audio("/assets/win95/chord.wav").play().catch(() => {});
+      sounds.chord();
     }, MODAL_DELAY);
 
     return () => clearTimeout(timer);
@@ -151,6 +151,7 @@ export function DenialClient() {
           ...(flowerPos ? { left: flowerPos.x, top: flowerPos.y, bottom: "auto", right: "auto" } : {}),
           cursor: isDragging ? "grabbing" : "grab",
           userSelect: "none",
+          touchAction: "none",
         }}
         onMouseDown={handleFlowerMouseDown}
         onTouchStart={handleFlowerTouchStart}
