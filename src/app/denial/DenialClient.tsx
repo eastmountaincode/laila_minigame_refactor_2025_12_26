@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ConsentModal } from "@/components/ConsentModal";
+import { ScreenshotButton } from "@/components/ScreenshotButton";
 import { WebcamMotion } from "@/components/webcam";
 
 // Adjust these values to match Webflow styling
@@ -46,6 +47,8 @@ export function DenialClient() {
         isOpen={showModal}
         onAccept={handleAccept}
       />
+
+      <ScreenshotButton />
 
       {/* Content Overlay - scrollable */}
       <div className="relative z-10 flex min-h-dvh flex-col p-4 pb-30 md:p-14 md:pb-30">
