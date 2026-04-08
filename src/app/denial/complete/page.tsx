@@ -254,10 +254,10 @@ export default function CompletePage() {
           alt="Home"
           width={96}
           height={96}
-          className="w-14 md:w-20 h-auto"
+          className="w-12 md:w-14 h-auto"
           unoptimized
         />
-        <span className="text-white font-pixel text-[10px] md:text-xs mt-1">home</span>
+        <span className="text-white text-sm md:text-md -mt-3 ml-1 tracking-[0.1em]" style={{ fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif', WebkitFontSmoothing: "none" }}>HOME</span>
       </Link>
     </main>
   );

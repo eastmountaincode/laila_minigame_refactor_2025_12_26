@@ -259,10 +259,10 @@ export function FinalPopup({ onComplete }: FinalPopupProps) {
           alt="Home"
           width={96}
           height={96}
-          className="w-14 md:w-20 h-auto"
+          className="w-14 md:w-16 h-auto"
           unoptimized
         />
-        <span className="text-white font-pixel text-[10px] md:text-xs mt-1">home</span>
+        <span className="text-white text-xs md:text-sm mt-1" style={{ fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif', WebkitFontSmoothing: "none" }}>HOME</span>
       </Link>
     </main>
   );

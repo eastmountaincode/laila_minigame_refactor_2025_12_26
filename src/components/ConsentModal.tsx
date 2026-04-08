@@ -71,22 +71,7 @@ export function ConsentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 transition-none">
-      {/* 98.css font face */}
       <style>{`
-        @font-face {
-          font-family: "Pixelated MS Sans Serif";
-          font-style: normal;
-          font-weight: 400;
-          src: url("/assets/win95/ms_sans_serif.woff2") format("woff2"),
-               url("/assets/win95/ms_sans_serif.woff") format("woff");
-        }
-        @font-face {
-          font-family: "Pixelated MS Sans Serif";
-          font-style: normal;
-          font-weight: 700;
-          src: url("/assets/win95/ms_sans_serif_bold.woff2") format("woff2"),
-               url("/assets/win95/ms_sans_serif_bold.woff") format("woff");
-        }
         .win95-btn:active {
           box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey !important;
         }

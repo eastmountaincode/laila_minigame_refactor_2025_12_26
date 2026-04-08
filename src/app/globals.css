@@ -39,6 +39,22 @@
 }
 
 @font-face {
+  font-family: "Pixelated MS Sans Serif";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/assets/win95/ms_sans_serif.woff2") format("woff2"),
+       url("/assets/win95/ms_sans_serif.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Pixelated MS Sans Serif";
+  font-style: normal;
+  font-weight: 700;
+  src: url("/assets/win95/ms_sans_serif_bold.woff2") format("woff2"),
+       url("/assets/win95/ms_sans_serif_bold.woff") format("woff");
+}
+
+@font-face {
   font-family: "Apple Chancery";
   src: url("/assets/webflow/fonts/Apple Chancery.ttf") format("truetype");
   font-weight: 400;
