@@ -168,7 +168,7 @@ export default function CompletePage() {
           userSelect: "none",
           cursor: isDragging ? "grabbing" : "grab",
           transform: `translate(${position.x}px, ${position.y}px)`,
-          zIndex: 10,
+          zIndex: 50,
         }}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
