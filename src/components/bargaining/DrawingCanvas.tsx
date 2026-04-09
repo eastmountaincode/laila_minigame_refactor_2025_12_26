@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { useDevMode } from "@/components/DevModeProvider";
 
 import { sounds } from "@/lib/sounds";
+import {
+  vertexShaderSource,
+  fragmentShaderSource,
+  compileShader,
+  createProgram,
+} from "./traceShaders";
 const playClick = sounds.click;
 
 // Drawing text - you can customize this with your own content
@@ -24,6 +30,9 @@ export function DrawingCanvas() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const traceAnimRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
+  const glRef = useRef<WebGLRenderingContext | null>(null);
+  const traceProgramRef = useRef<WebGLProgram | null>(null);
+  const traceTextureRef = useRef<WebGLTexture | null>(null);
   const devMode = useDevMode();
 
   // Draggable state for "not good enough" dialog
@@ -169,108 +178,144 @@ export function DrawingCanvas() {
     counterRef.current = 0;
   };
 
-  // Webcam trace — high-contrast B&W guide layer
+  // WebGL trace — high-contrast B&W guide layer, all processing on GPU
+  const initTraceGL = useCallback(() => {
+    const canvas = traceCanvasRef.current;
+    if (!canvas) return false;
+
+    const gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: false });
+    if (!gl) return false;
+    glRef.current = gl;
+
+    const vs = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    if (!vs || !fs) return false;
+
+    const program = createProgram(gl, vs, fs);
+    if (!program) return false;
+    traceProgramRef.current = program;
+
+    // Full-screen quad
+    const positions = new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]);
+    const texCoords = new Float32Array([0,1, 1,1, 0,0, 0,0, 1,1, 1,0]);
+
+    const posBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    const posLoc = gl.getAttribLocation(program, "a_position");
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+    const tcBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tcBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
+    const tcLoc = gl.getAttribLocation(program, "a_texCoord");
+    gl.enableVertexAttribArray(tcLoc);
+    gl.vertexAttribPointer(tcLoc, 2, gl.FLOAT, false, 0, 0);
+
+    // Create texture for video frame
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    traceTextureRef.current = texture;
+
+    gl.useProgram(program);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    return true;
+  }, []);
+
   const startTrace = useCallback(async () => {
-    if (traceActive) {
-      // Toggle off
-      cancelAnimationFrame(traceAnimRef.current);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      }
-      const tc = traceCanvasRef.current;
-      if (tc) {
-        const ctx = tc.getContext("2d");
-        ctx?.clearRect(0, 0, tc.width, tc.height);
-      }
-      setTraceActive(false);
-      return;
-    }
+    if (!navigator.mediaDevices?.getUserMedia) return;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+        audio: false,
       });
       streamRef.current = stream;
+
       const video = document.createElement("video");
       video.srcObject = stream;
       video.playsInline = true;
+      video.muted = true;
       await video.play();
       videoRef.current = video;
+
+      const canvas = traceCanvasRef.current;
+      if (canvas && glRef.current) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        glRef.current.viewport(0, 0, canvas.width, canvas.height);
+      }
+
       setTraceActive(true);
 
-      // Process at reduced resolution for performance, scale up via CSS
-      const PROCESS_WIDTH = 320;
-      const offscreen = document.createElement("canvas");
-      let lastFrameTime = 0;
-      const TARGET_INTERVAL = 1000 / 15; // 15fps is plenty for a trace guide
-
-      const processFrame = (now: number) => {
-        traceAnimRef.current = requestAnimationFrame(processFrame);
-
-        // Throttle
-        if (now - lastFrameTime < TARGET_INTERVAL) return;
-        lastFrameTime = now;
-
-        const tc = traceCanvasRef.current;
-        if (!tc || !video.videoWidth) return;
-
-        // Size offscreen canvas to a small resolution
-        const aspect = window.innerHeight / window.innerWidth;
-        const pw = PROCESS_WIDTH;
-        const ph = Math.round(pw * aspect);
-        offscreen.width = pw;
-        offscreen.height = ph;
-        const offCtx = offscreen.getContext("2d", { willReadFrequently: true });
-        if (!offCtx) return;
-
-        // Draw video mirrored and scaled to fill at low res
-        offCtx.save();
-        offCtx.translate(pw, 0);
-        offCtx.scale(-1, 1);
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
-        const scale = Math.max(pw / vw, ph / vh);
-        const dx = (pw - vw * scale) / 2;
-        const dy = (ph - vh * scale) / 2;
-        offCtx.drawImage(video, dx, dy, vw * scale, vh * scale);
-        offCtx.restore();
-
-        // Threshold to high-contrast B&W
-        const imageData = offCtx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
-        const threshold = 120;
-        for (let i = 0; i < data.length; i += 4) {
-          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-          const val = gray > threshold ? 255 : 0;
-          data[i] = val;
-          data[i + 1] = val;
-          data[i + 2] = val;
-          data[i + 3] = 30; // very faint
+      const renderFrame = () => {
+        const gl = glRef.current;
+        const program = traceProgramRef.current;
+        const texture = traceTextureRef.current;
+        if (!gl || !program || !texture || !video.videoWidth) {
+          traceAnimRef.current = requestAnimationFrame(renderFrame);
+          return;
         }
-        offCtx.putImageData(imageData, 0, 0);
+        if (video.readyState < video.HAVE_CURRENT_DATA) {
+          traceAnimRef.current = requestAnimationFrame(renderFrame);
+          return;
+        }
 
-        // Scale up to display canvas
-        tc.width = window.innerWidth;
-        tc.height = window.innerHeight;
-        const displayCtx = tc.getContext("2d");
-        if (!displayCtx) return;
-        displayCtx.imageSmoothingEnabled = false; // keep it crispy
-        displayCtx.drawImage(offscreen, 0, 0, tc.width, tc.height);
+        gl.useProgram(program);
+
+        // Upload video frame to GPU
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+        gl.uniform1i(gl.getUniformLocation(program, "u_frame"), 0);
+        gl.uniform1f(gl.getUniformLocation(program, "u_threshold"), 0.45);
+        gl.uniform1f(gl.getUniformLocation(program, "u_opacity"), 0.5);
+
+        // Aspect ratio correction: cover (crop to fill)
+        const canvasAspect = window.innerWidth / window.innerHeight;
+        const videoAspect = video.videoWidth / video.videoHeight;
+        let scaleX = 1, scaleY = 1;
+        if (canvasAspect > videoAspect) {
+          // Canvas is wider — crop top/bottom
+          scaleY = videoAspect / canvasAspect;
+        } else {
+          // Canvas is taller — crop sides
+          scaleX = canvasAspect / videoAspect;
+        }
+        gl.uniform2f(gl.getUniformLocation(program, "u_videoAspect"), scaleX, scaleY);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        traceAnimRef.current = requestAnimationFrame(renderFrame);
       };
-      traceAnimRef.current = requestAnimationFrame(processFrame);
+      traceAnimRef.current = requestAnimationFrame(renderFrame);
     } catch {
       // Camera denied or unavailable
     }
-  }, [traceActive]);
+  }, []);
 
-  // Start trace automatically on mount
+  // Init WebGL and start trace on mount
   useEffect(() => {
+    const ok = initTraceGL();
+    if (!ok) {
+      console.error("Failed to init trace WebGL");
+    }
     startTrace();
     return () => {
       cancelAnimationFrame(traceAnimRef.current);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      const gl = glRef.current;
+      if (gl) {
+        if (traceTextureRef.current) gl.deleteTexture(traceTextureRef.current);
+        if (traceProgramRef.current) gl.deleteProgram(traceProgramRef.current);
       }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -376,7 +421,7 @@ export function DrawingCanvas() {
     setIsDrawing(false);
   };
 
-  // Resize canvas to fill container
+  // Resize both canvases to fill container
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -384,6 +429,15 @@ export function DrawingCanvas() {
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+
+      // Also resize trace WebGL canvas
+      const tc = traceCanvasRef.current;
+      const gl = glRef.current;
+      if (tc && gl) {
+        tc.width = window.innerWidth;
+        tc.height = window.innerHeight;
+        gl.viewport(0, 0, tc.width, tc.height);
+      }
     };
 
     resize();
@@ -402,11 +456,11 @@ export function DrawingCanvas() {
   }, [showNotGoodEnough, showNotGoodEnoughButtons]);
 
   return (
-    <div className="fixed inset-0 bg-white">
+    <div className="fixed inset-0" style={{ backgroundColor: "#fff" }}>
       {/* Trace guide canvas — behind drawing canvas */}
       <canvas
         ref={traceCanvasRef}
-        className="absolute inset-0"
+        className="absolute inset-0 h-full w-full"
       />
       <canvas
         ref={canvasRef}
@@ -622,6 +676,28 @@ export function DrawingCanvas() {
                     }}
                   >
                     Try Again
+                  </button>
+                  <button
+                    onClick={() => { playClick(); handleCamera(); }}
+                    className="win95-btn cursor-pointer"
+                    style={{
+                      background: "silver",
+                      border: "none",
+                      boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+                      padding: "0 6px",
+                      minHeight: 23,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                    aria-label="Save image"
+                  >
+                    <img
+                      src="/assets/win95/camera.png"
+                      alt="Camera"
+                      style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, imageRendering: "pixelated" }}
+                    />
                   </button>
                 </div>
               )}
