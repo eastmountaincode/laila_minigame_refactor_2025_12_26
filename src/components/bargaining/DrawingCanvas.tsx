@@ -19,6 +19,11 @@ export function DrawingCanvas() {
   const [showNotGoodEnough, setShowNotGoodEnough] = useState(false);
   const [showNotGoodEnoughButtons, setShowNotGoodEnoughButtons] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [traceActive, setTraceActive] = useState(false);
+  const traceCanvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const traceAnimRef = useRef(0);
+  const streamRef = useRef<MediaStream | null>(null);
   const devMode = useDevMode();
 
   // Draggable state for "not good enough" dialog
@@ -164,6 +169,158 @@ export function DrawingCanvas() {
     counterRef.current = 0;
   };
 
+  // Webcam trace — high-contrast B&W guide layer
+  const startTrace = useCallback(async () => {
+    if (traceActive) {
+      // Toggle off
+      cancelAnimationFrame(traceAnimRef.current);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+      const tc = traceCanvasRef.current;
+      if (tc) {
+        const ctx = tc.getContext("2d");
+        ctx?.clearRect(0, 0, tc.width, tc.height);
+      }
+      setTraceActive(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+      });
+      streamRef.current = stream;
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      video.playsInline = true;
+      await video.play();
+      videoRef.current = video;
+      setTraceActive(true);
+
+      const processFrame = () => {
+        const tc = traceCanvasRef.current;
+        if (!tc || !video.videoWidth) {
+          traceAnimRef.current = requestAnimationFrame(processFrame);
+          return;
+        }
+
+        tc.width = window.innerWidth;
+        tc.height = window.innerHeight;
+        const ctx = tc.getContext("2d");
+        if (!ctx) return;
+
+        // Draw video mirrored and scaled to fill
+        ctx.save();
+        ctx.translate(tc.width, 0);
+        ctx.scale(-1, 1);
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        const scale = Math.max(tc.width / vw, tc.height / vh);
+        const dx = (tc.width - vw * scale) / 2;
+        const dy = (tc.height - vh * scale) / 2;
+        ctx.drawImage(video, dx, dy, vw * scale, vh * scale);
+        ctx.restore();
+
+        // Process to high-contrast B&W
+        const imageData = ctx.getImageData(0, 0, tc.width, tc.height);
+        const data = imageData.data;
+        const threshold = 120;
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          const val = gray > threshold ? 255 : 0;
+          data[i] = val;
+          data[i + 1] = val;
+          data[i + 2] = val;
+          data[i + 3] = 30; // very faint — just a hint
+        }
+        ctx.putImageData(imageData, 0, 0);
+
+        traceAnimRef.current = requestAnimationFrame(processFrame);
+      };
+      traceAnimRef.current = requestAnimationFrame(processFrame);
+    } catch {
+      // Camera denied or unavailable
+    }
+  }, [traceActive]);
+
+  // Start trace automatically on mount
+  useEffect(() => {
+    startTrace();
+    return () => {
+      cancelAnimationFrame(traceAnimRef.current);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCamera = useCallback(() => {
+    const srcCanvas = canvasRef.current;
+    if (!srcCanvas) return;
+
+    const w = srcCanvas.width;
+    const h = srcCanvas.height;
+    const border = 12;
+    const bottomBar = 48;
+    const totalW = w + border * 2;
+    const totalH = h + border + bottomBar;
+
+    const out = document.createElement("canvas");
+    out.width = totalW;
+    out.height = totalH;
+    const ctx = out.getContext("2d");
+    if (!ctx) return;
+
+    // White frame background
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, totalW, totalH);
+
+    // Draw the artwork
+    ctx.drawImage(srcCanvas, border, border, w, h);
+
+    // Border line around the artwork
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(border - 0.5, border - 0.5, w + 1, h + 1);
+
+    // Bottom bar text
+    ctx.fillStyle = "#000";
+    ctx.font = '16px "Pixelated MS Sans Serif", Arial, sans-serif';
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("I'll Do Anything", totalW / 2, h + border + bottomBar / 2);
+
+    out.toBlob(async (blob) => {
+      if (!blob) return;
+
+      // Detect mobile / in-app browser — use share sheet there
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile && navigator.share && navigator.canShare) {
+        const file = new File([blob], "ill-do-anything.png", { type: "image/png" });
+        const shareData = { files: [file] };
+        try {
+          if (navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+            return;
+          }
+        } catch {
+          // User cancelled or share failed — fall through
+        }
+      }
+
+      // Desktop: direct download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = "ill-do-anything.png";
+      link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }, "image/png");
+  }, []);
+
   const handleTryAgain = () => {
     setShowNotGoodEnoughButtons(false);
     handleDoubleClick();
@@ -227,9 +384,15 @@ export function DrawingCanvas() {
 
   return (
     <div className="fixed inset-0 bg-white">
+      {/* Trace guide canvas — behind drawing canvas */}
+      <canvas
+        ref={traceCanvasRef}
+        className="absolute inset-0"
+      />
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 cursor-crosshair bg-white"
+        className="absolute inset-0 cursor-crosshair"
+        style={{ backgroundColor: "transparent" }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -265,27 +428,69 @@ export function DrawingCanvas() {
         </div>
       )}
 
-      {/* "This is what I look like" button */}
+      {/* "This is what I look like" + camera buttons */}
       {showThisIsMe && !showNotGoodEnough && (
-        <button
-          onClick={() => { playClick(); setShowNotGoodEnough(true); }}
-          className="win95-btn fixed bottom-[10%] left-1/2 -translate-x-1/2 cursor-pointer md:bottom-[3%]"
-          style={{
-            background: "silver",
-            border: "none",
-            boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
-            padding: "4px 20px",
-            fontSize: 11,
-            fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
-            WebkitFontSmoothing: "none",
-            minHeight: 23,
-            color: "#222",
-            outline: "1px dotted #000",
-            outlineOffset: "-4px",
-          }}
-        >
-          this is what i look like
-        </button>
+        <div className="fixed bottom-[10%] left-1/2 -translate-x-1/2 flex gap-2 md:bottom-[3%]" style={{ whiteSpace: "nowrap" }}>
+          <button
+            onClick={() => { playClick(); setShowNotGoodEnough(true); }}
+            className="win95-btn cursor-pointer"
+            style={{
+              background: "silver",
+              border: "none",
+              boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+              padding: "4px 20px",
+              fontSize: 11,
+              fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
+              WebkitFontSmoothing: "none",
+              minHeight: 23,
+              color: "#222",
+              outline: "1px dotted #000",
+              outlineOffset: "-4px",
+            }}
+          >
+            this is what i look like
+          </button>
+          <button
+            onClick={() => { playClick(); handleDoubleClick(); }}
+            className="win95-btn cursor-pointer"
+            style={{
+              background: "silver",
+              border: "none",
+              boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+              padding: "4px 12px",
+              fontSize: 11,
+              fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
+              WebkitFontSmoothing: "none",
+              minHeight: 23,
+              color: "#222",
+            }}
+          >
+            reset
+          </button>
+          <button
+            onClick={() => { playClick(); handleCamera(); }}
+            className="win95-btn cursor-pointer"
+            style={{
+              background: "silver",
+              border: "none",
+              boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+              padding: "4px 8px",
+              minHeight: 23,
+              minWidth: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+            aria-label="Camera"
+          >
+            <img
+              src="/assets/win95/camera.png"
+              alt="Camera"
+              style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, imageRendering: "pixelated" }}
+            />
+          </button>
+        </div>
       )}
 
       {/* "That's not good enough" Win95 dialog */}
