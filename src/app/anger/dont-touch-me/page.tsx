@@ -116,8 +116,20 @@ export default function DontTouchMePage() {
         {showBored && (
           <button
             onClick={() => router.push("/anger/sad-girl")}
-            className="fixed bottom-[5%] right-[5%] cursor-pointer bg-[url('/assets/webflow/images/Screenshot-2023-11-19-at-14.00.16.png')] bg-contain bg-center bg-no-repeat font-pixel text-[21px] text-black"
-            style={{ width: "150px", height: "50px" }}
+            className="win95-btn fixed bottom-[5%] right-[5%] cursor-pointer"
+            style={{
+              background: "silver",
+              border: "none",
+              boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+              padding: "4px 20px",
+              fontSize: 11,
+              fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
+              WebkitFontSmoothing: "none",
+              minHeight: 23,
+              color: "#222",
+              outline: "1px dotted #000",
+              outlineOffset: "-4px",
+            }}
           >
             Bored
           </button>
