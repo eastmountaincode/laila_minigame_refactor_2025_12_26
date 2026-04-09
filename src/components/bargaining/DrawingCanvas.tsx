@@ -199,32 +199,45 @@ export function DrawingCanvas() {
       videoRef.current = video;
       setTraceActive(true);
 
-      const processFrame = () => {
+      // Process at reduced resolution for performance, scale up via CSS
+      const PROCESS_WIDTH = 320;
+      const offscreen = document.createElement("canvas");
+      let lastFrameTime = 0;
+      const TARGET_INTERVAL = 1000 / 15; // 15fps is plenty for a trace guide
+
+      const processFrame = (now: number) => {
+        traceAnimRef.current = requestAnimationFrame(processFrame);
+
+        // Throttle
+        if (now - lastFrameTime < TARGET_INTERVAL) return;
+        lastFrameTime = now;
+
         const tc = traceCanvasRef.current;
-        if (!tc || !video.videoWidth) {
-          traceAnimRef.current = requestAnimationFrame(processFrame);
-          return;
-        }
+        if (!tc || !video.videoWidth) return;
 
-        tc.width = window.innerWidth;
-        tc.height = window.innerHeight;
-        const ctx = tc.getContext("2d");
-        if (!ctx) return;
+        // Size offscreen canvas to a small resolution
+        const aspect = window.innerHeight / window.innerWidth;
+        const pw = PROCESS_WIDTH;
+        const ph = Math.round(pw * aspect);
+        offscreen.width = pw;
+        offscreen.height = ph;
+        const offCtx = offscreen.getContext("2d", { willReadFrequently: true });
+        if (!offCtx) return;
 
-        // Draw video mirrored and scaled to fill
-        ctx.save();
-        ctx.translate(tc.width, 0);
-        ctx.scale(-1, 1);
+        // Draw video mirrored and scaled to fill at low res
+        offCtx.save();
+        offCtx.translate(pw, 0);
+        offCtx.scale(-1, 1);
         const vw = video.videoWidth;
         const vh = video.videoHeight;
-        const scale = Math.max(tc.width / vw, tc.height / vh);
-        const dx = (tc.width - vw * scale) / 2;
-        const dy = (tc.height - vh * scale) / 2;
-        ctx.drawImage(video, dx, dy, vw * scale, vh * scale);
-        ctx.restore();
+        const scale = Math.max(pw / vw, ph / vh);
+        const dx = (pw - vw * scale) / 2;
+        const dy = (ph - vh * scale) / 2;
+        offCtx.drawImage(video, dx, dy, vw * scale, vh * scale);
+        offCtx.restore();
 
-        // Process to high-contrast B&W
-        const imageData = ctx.getImageData(0, 0, tc.width, tc.height);
+        // Threshold to high-contrast B&W
+        const imageData = offCtx.getImageData(0, 0, pw, ph);
         const data = imageData.data;
         const threshold = 120;
         for (let i = 0; i < data.length; i += 4) {
@@ -233,11 +246,17 @@ export function DrawingCanvas() {
           data[i] = val;
           data[i + 1] = val;
           data[i + 2] = val;
-          data[i + 3] = 30; // very faint — just a hint
+          data[i + 3] = 30; // very faint
         }
-        ctx.putImageData(imageData, 0, 0);
+        offCtx.putImageData(imageData, 0, 0);
 
-        traceAnimRef.current = requestAnimationFrame(processFrame);
+        // Scale up to display canvas
+        tc.width = window.innerWidth;
+        tc.height = window.innerHeight;
+        const displayCtx = tc.getContext("2d");
+        if (!displayCtx) return;
+        displayCtx.imageSmoothingEnabled = false; // keep it crispy
+        displayCtx.drawImage(offscreen, 0, 0, tc.width, tc.height);
       };
       traceAnimRef.current = requestAnimationFrame(processFrame);
     } catch {
