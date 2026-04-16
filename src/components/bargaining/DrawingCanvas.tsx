@@ -5,12 +5,6 @@ import { useRouter } from "next/navigation";
 import { useDevMode } from "@/components/DevModeProvider";
 
 import { sounds } from "@/lib/sounds";
-import {
-  vertexShaderSource,
-  fragmentShaderSource,
-  compileShader,
-  createProgram,
-} from "./traceShaders";
 const playClick = sounds.click;
 
 // Drawing text - you can customize this with your own content
@@ -25,15 +19,6 @@ export function DrawingCanvas() {
   const [showNotGoodEnough, setShowNotGoodEnough] = useState(false);
   const [showNotGoodEnoughButtons, setShowNotGoodEnoughButtons] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
-  const [traceActive, setTraceActive] = useState(false);
-  const [traceHidden, setTraceHidden] = useState(false);
-  const traceCanvasRef = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const traceAnimRef = useRef(0);
-  const streamRef = useRef<MediaStream | null>(null);
-  const glRef = useRef<WebGLRenderingContext | null>(null);
-  const traceProgramRef = useRef<WebGLProgram | null>(null);
-  const traceTextureRef = useRef<WebGLTexture | null>(null);
   const devMode = useDevMode();
 
   // Draggable state for "not good enough" dialog
@@ -179,147 +164,6 @@ export function DrawingCanvas() {
     counterRef.current = 0;
   };
 
-  // WebGL trace — high-contrast B&W guide layer, all processing on GPU
-  const initTraceGL = useCallback(() => {
-    const canvas = traceCanvasRef.current;
-    if (!canvas) return false;
-
-    const gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: false });
-    if (!gl) return false;
-    glRef.current = gl;
-
-    const vs = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-    const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-    if (!vs || !fs) return false;
-
-    const program = createProgram(gl, vs, fs);
-    if (!program) return false;
-    traceProgramRef.current = program;
-
-    // Full-screen quad
-    const positions = new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]);
-    const texCoords = new Float32Array([0,1, 1,1, 0,0, 0,0, 1,1, 1,0]);
-
-    const posBuf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-    const posLoc = gl.getAttribLocation(program, "a_position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
-    const tcBuf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, tcBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
-    const tcLoc = gl.getAttribLocation(program, "a_texCoord");
-    gl.enableVertexAttribArray(tcLoc);
-    gl.vertexAttribPointer(tcLoc, 2, gl.FLOAT, false, 0, 0);
-
-    // Create texture for video frame
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    traceTextureRef.current = texture;
-
-    gl.useProgram(program);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-    return true;
-  }, []);
-
-  const startTrace = useCallback(async () => {
-    if (!navigator.mediaDevices?.getUserMedia) return;
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-        audio: false,
-      });
-      streamRef.current = stream;
-
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      video.playsInline = true;
-      video.muted = true;
-      await video.play();
-      videoRef.current = video;
-
-      const canvas = traceCanvasRef.current;
-      if (canvas && glRef.current) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        glRef.current.viewport(0, 0, canvas.width, canvas.height);
-      }
-
-      setTraceActive(true);
-
-      const renderFrame = () => {
-        const gl = glRef.current;
-        const program = traceProgramRef.current;
-        const texture = traceTextureRef.current;
-        if (!gl || !program || !texture || !video.videoWidth) {
-          traceAnimRef.current = requestAnimationFrame(renderFrame);
-          return;
-        }
-        if (video.readyState < video.HAVE_CURRENT_DATA) {
-          traceAnimRef.current = requestAnimationFrame(renderFrame);
-          return;
-        }
-
-        gl.useProgram(program);
-
-        // Upload video frame to GPU
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-        gl.uniform1i(gl.getUniformLocation(program, "u_frame"), 0);
-        gl.uniform1f(gl.getUniformLocation(program, "u_threshold"), 0.45);
-        gl.uniform1f(gl.getUniformLocation(program, "u_opacity"), 0.4);
-
-        // Aspect ratio correction: cover (crop to fill)
-        const canvasAspect = window.innerWidth / window.innerHeight;
-        const videoAspect = video.videoWidth / video.videoHeight;
-        let scaleX = 1, scaleY = 1;
-        if (canvasAspect > videoAspect) {
-          // Canvas is wider — crop top/bottom
-          scaleY = videoAspect / canvasAspect;
-        } else {
-          // Canvas is taller — crop sides
-          scaleX = canvasAspect / videoAspect;
-        }
-        gl.uniform2f(gl.getUniformLocation(program, "u_videoAspect"), scaleX, scaleY);
-
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
-        traceAnimRef.current = requestAnimationFrame(renderFrame);
-      };
-      traceAnimRef.current = requestAnimationFrame(renderFrame);
-    } catch {
-      // Camera denied or unavailable
-    }
-  }, []);
-
-  // Init WebGL and start trace on mount
-  useEffect(() => {
-    const ok = initTraceGL();
-    if (!ok) {
-      console.error("Failed to init trace WebGL");
-    }
-    startTrace();
-    return () => {
-      cancelAnimationFrame(traceAnimRef.current);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
-      const gl = glRef.current;
-      if (gl) {
-        if (traceTextureRef.current) gl.deleteTexture(traceTextureRef.current);
-        if (traceProgramRef.current) gl.deleteProgram(traceProgramRef.current);
-      }
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCamera = useCallback(() => {
     const srcCanvas = canvasRef.current;
@@ -388,7 +232,6 @@ export function DrawingCanvas() {
 
   const handleTryAgain = () => {
     setShowNotGoodEnoughButtons(false);
-    setTraceHidden(false);
     handleDoubleClick();
   };
 
@@ -431,15 +274,6 @@ export function DrawingCanvas() {
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-
-      // Also resize trace WebGL canvas
-      const tc = traceCanvasRef.current;
-      const gl = glRef.current;
-      if (tc && gl) {
-        tc.width = window.innerWidth;
-        tc.height = window.innerHeight;
-        gl.viewport(0, 0, tc.width, tc.height);
-      }
     };
 
     resize();
@@ -459,12 +293,6 @@ export function DrawingCanvas() {
 
   return (
     <div className="fixed inset-0" style={{ backgroundColor: "#fff" }}>
-      {/* Trace guide canvas — behind drawing canvas, hidden after submitting */}
-      <canvas
-        ref={traceCanvasRef}
-        className="absolute inset-0 h-full w-full"
-        style={{ display: traceHidden ? "none" : undefined }}
-      />
       <canvas
         ref={canvasRef}
         className="absolute inset-0 cursor-crosshair"
@@ -508,7 +336,7 @@ export function DrawingCanvas() {
       {showThisIsMe && !showNotGoodEnough && (
         <div className="fixed bottom-[10%] left-1/2 -translate-x-1/2 flex gap-2 md:bottom-[3%]" style={{ whiteSpace: "nowrap" }}>
           <button
-            onClick={() => { playClick(); setShowThisIsMe(false); setTraceHidden(true); setTimeout(() => setShowNotGoodEnough(true), 2300); }}
+            onClick={() => { playClick(); setShowThisIsMe(false); setTimeout(() => setShowNotGoodEnough(true), 2300); }}
             className="win95-btn cursor-pointer"
             style={{
               background: "silver",
