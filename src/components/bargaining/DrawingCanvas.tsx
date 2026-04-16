@@ -26,6 +26,7 @@ export function DrawingCanvas() {
   const [showNotGoodEnoughButtons, setShowNotGoodEnoughButtons] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const [traceActive, setTraceActive] = useState(false);
+  const [traceHidden, setTraceHidden] = useState(false);
   const traceCanvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const traceAnimRef = useRef(0);
@@ -276,7 +277,7 @@ export function DrawingCanvas() {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
         gl.uniform1i(gl.getUniformLocation(program, "u_frame"), 0);
         gl.uniform1f(gl.getUniformLocation(program, "u_threshold"), 0.45);
-        gl.uniform1f(gl.getUniformLocation(program, "u_opacity"), 0.5);
+        gl.uniform1f(gl.getUniformLocation(program, "u_opacity"), 0.4);
 
         // Aspect ratio correction: cover (crop to fill)
         const canvasAspect = window.innerWidth / window.innerHeight;
@@ -387,6 +388,7 @@ export function DrawingCanvas() {
 
   const handleTryAgain = () => {
     setShowNotGoodEnoughButtons(false);
+    setTraceHidden(false);
     handleDoubleClick();
   };
 
@@ -457,10 +459,11 @@ export function DrawingCanvas() {
 
   return (
     <div className="fixed inset-0" style={{ backgroundColor: "#fff" }}>
-      {/* Trace guide canvas — behind drawing canvas */}
+      {/* Trace guide canvas — behind drawing canvas, hidden after submitting */}
       <canvas
         ref={traceCanvasRef}
         className="absolute inset-0 h-full w-full"
+        style={{ display: traceHidden ? "none" : undefined }}
       />
       <canvas
         ref={canvasRef}
@@ -505,7 +508,7 @@ export function DrawingCanvas() {
       {showThisIsMe && !showNotGoodEnough && (
         <div className="fixed bottom-[10%] left-1/2 -translate-x-1/2 flex gap-2 md:bottom-[3%]" style={{ whiteSpace: "nowrap" }}>
           <button
-            onClick={() => { playClick(); setShowNotGoodEnough(true); }}
+            onClick={() => { playClick(); setShowThisIsMe(false); setTraceHidden(true); setTimeout(() => setShowNotGoodEnough(true), 2300); }}
             className="win95-btn cursor-pointer"
             style={{
               background: "silver",

@@ -87,7 +87,7 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
             type="button"
             aria-label={button.label}
             onClick={() => setTenderOpen(true)}
-            className="group relative block select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
+            className="group relative block cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
           >
             {isMobile ? (
               <>

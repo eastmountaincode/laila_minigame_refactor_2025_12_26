@@ -13,9 +13,28 @@ interface TenderOSModalProps {
   onClose: () => void;
 }
 
+// Below this width, scale iframe contents so win98 desktop has room
+const SCALE_BREAKPOINT = 700;
+const MIN_IFRAME_WIDTH = 800;
+
 export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
   const [loaded, setLoaded] = useState(false);
+  const [iframeScale, setIframeScale] = useState(1);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const updateScale = () => {
+      const w = window.innerWidth * 0.96;
+      if (w < SCALE_BREAKPOINT) {
+        setIframeScale(w / MIN_IFRAME_WIDTH);
+      } else {
+        setIframeScale(1);
+      }
+    };
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, [isOpen]);
   // Reset loaded state when modal closes
   useEffect(() => {
     if (!isOpen) setLoaded(false);
@@ -35,7 +54,8 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="pointer-events-auto fixed inset-0 z-50 flex cursor-pointer items-center justify-center"
+      onClick={onClose}
       style={{ background: "rgba(0,0,0,0.85)" }}
     >
       <style>{`
@@ -46,7 +66,9 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
 
       {/* Win98-style window — fullscreen on mobile, large on desktop */}
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
+          cursor: "default",
           background: "silver",
           boxShadow:
             "inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff",
@@ -62,7 +84,6 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
           maxWidth: "1200px",
           maxHeight: "900px",
         }}
-        className=""
       >
         {/* Title bar */}
         <div
@@ -156,10 +177,12 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
           }}
         >
           <iframe
-            src="http://localhost:5173"
+            src="/win98-web/index.html"
             style={{
-              width: "100%",
-              height: "100%",
+              width: `${100 / iframeScale}%`,
+              height: `${100 / iframeScale}%`,
+              transform: `scale(${iframeScale})`,
+              transformOrigin: "top left",
               border: "none",
               display: loaded ? "block" : "none",
             }}
@@ -172,16 +195,9 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
               style={{
                 position: "absolute",
                 inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#aaa",
-                fontFamily: "monospace",
-                fontSize: 14,
+                background: "#000",
               }}
-            >
-              Loading Tender OS...
-            </div>
+            />
           )}
         </div>
       </div>
