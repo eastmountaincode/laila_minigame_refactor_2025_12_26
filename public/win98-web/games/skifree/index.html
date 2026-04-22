@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>SkiFree</title>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data:;">
+		<link rel="stylesheet" href="./css/ski.css">
+		<style>
+			/* Tender OS: hide auth/chat/leaderboard UI that the upstream build ships. */
+			#user-section,
+			#chat-area,
+			#about,
+			#active-users,
+			#leaderboard,
+			#offline-ind { display: none !important; }
+			html, body { margin: 0; padding: 0; background: #000; overflow: hidden; height: 100%; }
+		</style>
+	</head>
+	<body>
+		<canvas id="gameScreen" width="0" height="0"></canvas>
+		<img src="./img/offline.png" id="offline-ind" title="Offline">
+		<div id="game-info">
+			<button id="game-info-btn" class="button-invis" title="Pause"></button>
+			<div id="game-info-stats">
+				<div id="game-info-time" class="game-info-item">Time:</div>
+				<div id="game-info-dist" class="game-info-item">Dist:</div>
+				<div id="game-info-speed" class="game-info-item">Speed:</div>
+				<div id="game-info-style" class="game-info-item">Style:</div>
+			</div>
+			<div>
+				<div id="game-paused-text" class="animate-pulse">GAME PAUSED</div>
+				<button id="restart-btn" class="button-invis" title="Restart"></button>
+				<img src="./img/restart.png" id="restart-img">
+			</div>
+		</div>
+		<!-- Placeholder stubs so upstream game.js can still read .style without crashing. -->
+		<div id="user-section" style="display:none"></div>
+		<div id="logged-in-username" style="display:none"></div>
+		<div id="active-users" style="display:none"></div>
+		<div id="leaderboard" style="display:none"></div>
+		<div id="about" style="display:none"></div>
+		<div id="message-container" style="display:none"></div>
+		<div id="chat-area" style="display:none"></div>
+		<script src="./js/ski.js" type="module" defer></script>
+	</body>
+</html>
