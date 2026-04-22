@@ -1441,6 +1441,18 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
       if (event.target.tagName.toLowerCase() === "select") {
         return;
       }
+      // Editable targets (input, textarea, contenteditable) must be allowed to
+      // receive focus natively. Hijacking focus on pointerdown prevents iOS
+      // Safari from opening the soft keyboard.
+      const tag = event.target.tagName.toLowerCase();
+      if (
+        tag === "textarea" ||
+        (tag === "input" && !/^(button|submit|reset|checkbox|radio|range|color|file|image)$/i.test(event.target.type || "")) ||
+        event.target.isContentEditable
+      ) {
+        $w.bringToFront();
+        return;
+      }
 
       // console.log("handle_pointer_activation", event.type, event.target);
       $w.bringToFront();
