@@ -2,8 +2,33 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 export default function AngerPage() {
+  const [flowerPos, setFlowerPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    setIsDragging(true);
+    el.setPointerCapture(e.pointerId);
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setFlowerPos({
+      x: e.clientX - dragOffset.current.x,
+      y: e.clientY - dragOffset.current.y,
+    });
+  }, [isDragging]);
+
+  const handlePointerUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
   return (
     <main className="relative min-h-dvh bg-black">
       {/* Text content */}
@@ -30,8 +55,19 @@ export default function AngerPage() {
         </div>
       </div>
 
-      {/* Flower image - fixed at bottom right */}
-      <div className="fixed bottom-0 right-5 md:right-20 select-none">
+      {/* Flower image - draggable */}
+      <div
+        className="fixed select-none"
+        style={
+          flowerPos
+            ? { left: flowerPos.x, top: flowerPos.y, cursor: isDragging ? "grabbing" : "grab", touchAction: "none" }
+            : { bottom: 0, right: 20, cursor: "grab", touchAction: "none" }
+        }
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
         <Image
           src="/assets/webflow/images/picmix.com_1607078.png"
           alt=""

@@ -325,6 +325,9 @@ export function DenialClient() {
               WITHIN
             </Link>
             .
+            <br />
+            <br />
+            - AUDRE LORDE
           </p>
         </div>
 
