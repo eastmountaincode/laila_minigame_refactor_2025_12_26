@@ -2,6 +2,23 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
+        <script>
+            // Tender OS: tear down any previously-registered service worker
+            // + its caches. Old VitePWA precaches were serving stale hashed
+            // chunks across deploys.
+            if ("serviceWorker" in navigator) {
+                navigator.serviceWorker
+                    .getRegistrations()
+                    .then((regs) => regs.forEach((r) => r.unregister()))
+                    .catch(() => {});
+            }
+            if (typeof caches !== "undefined") {
+                caches
+                    .keys()
+                    .then((keys) => keys.forEach((k) => caches.delete(k)))
+                    .catch(() => {});
+            }
+        </script>
         <link
             rel="icon"
             type="image/svg+xml"
@@ -205,7 +222,7 @@
       <link rel="modulepreload" crossorigin href="/win98-web/assets/zenfs-5S7w0OYW.js">
       <link rel="stylesheet" crossorigin href="/win98-web/assets/xterm-DFuMZ0ql.css">
       <link rel="stylesheet" crossorigin href="/win98-web/assets/main-B0P4SsRH.css">
-    <link rel="manifest" href="/win98-web/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/win98-web/registerSW.js"></script></head>
+    </head>
 
     <body class="scanlines">
         <div id="screen">

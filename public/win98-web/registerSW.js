@@ -1,1 +1,0 @@
-if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/win98-web/sw.js', { scope: '/win98-web/' })})}
