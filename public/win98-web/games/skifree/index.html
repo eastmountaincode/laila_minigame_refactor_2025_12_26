@@ -15,6 +15,22 @@
 			#leaderboard,
 			#offline-ind { display: none !important; }
 			html, body { margin: 0; padding: 0; background: #000; overflow: hidden; height: 100%; }
+
+			/* The stats HUD (time/dist/speed/style) has an invisible button overlay that
+			   toggles pause — we don't want that interaction in BeFree. */
+			#game-info-btn { pointer-events: none !important; }
+
+			/* Exit-cutscene fade-to-black. Duration is set inline from JS via transitionDuration. */
+			#exit-fade {
+				position: fixed;
+				inset: 0;
+				background: #000;
+				opacity: 0;
+				pointer-events: none;
+				z-index: 999;
+				transition: opacity 2s ease-in;
+			}
+			#exit-fade.active { opacity: 1; }
 		</style>
 	</head>
 	<body>
@@ -42,6 +58,9 @@
 		<div id="about" style="display:none"></div>
 		<div id="message-container" style="display:none"></div>
 		<div id="chat-area" style="display:none"></div>
+
+		<div id="exit-fade"></div>
+
 		<script src="./js/ski.js" type="module" defer></script>
 	</body>
 </html>

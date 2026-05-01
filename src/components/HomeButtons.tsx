@@ -14,6 +14,7 @@ const BUTTON_LAYOUT: Record<
     mobilePosition: string;
     mobileClass: string;
     mobileHoverClass: string;
+    desktopHoverImageClass?: string;
   }
 > = {
   denial: {
@@ -22,19 +23,20 @@ const BUTTON_LAYOUT: Record<
     desktopHeight: 127,
     mobilePosition:
       "pointer-events-auto flex items-start justify-start pt-[20vh] pl-[5vw]",
-    mobileClass: "h-auto w-[66vw] max-w-[275px]",
-    mobileHoverClass: "h-auto w-[66vw] max-w-[275px]",
+    mobileClass: "h-auto w-[48vw] max-w-[200px]",
+    mobileHoverClass: "h-auto w-[48vw] max-w-[200px]",
   },
   bargaining: {
-    desktopPosition: "pointer-events-auto flex items-start justify-end",
+    desktopPosition: "pointer-events-auto flex items-start justify-start",
     desktopWidth: 482,
     desktopHeight: 144,
     mobilePosition: "pointer-events-auto flex items-start justify-end",
     mobileClass: "h-auto w-[56vw] max-w-[300px]",
     mobileHoverClass: "h-auto w-[64vw] max-w-[340px]",
+    desktopHoverImageClass: "-translate-y-12",
   },
   anger: {
-    desktopPosition: "pointer-events-auto flex items-start justify-start",
+    desktopPosition: "pointer-events-auto flex items-start justify-end",
     desktopWidth: 256,
     desktopHeight: 126,
     mobilePosition:
@@ -47,8 +49,8 @@ const BUTTON_LAYOUT: Record<
     desktopWidth: 282,
     desktopHeight: 124,
     mobilePosition: "pointer-events-auto flex items-end justify-end",
-    mobileClass: "h-auto w-[24vw] max-w-[95px]",
-    mobileHoverClass: "h-auto w-[24vw] max-w-[95px]",
+    mobileClass: "h-auto w-[48vw] max-w-[190px]",
+    mobileHoverClass: "h-auto w-[48vw] max-w-[190px]",
   },
 };
 
@@ -66,15 +68,31 @@ interface HomeButtonsProps {
   buttons: ButtonData[];
 }
 
+const BUTTON_ORDER = ["bargaining", "anger", "denial", "tender"];
+
 export function HomeButtons({ buttons }: HomeButtonsProps) {
   const [tenderOpen, setTenderOpen] = useState(false);
 
   const handleTenderClose = useCallback(() => setTenderOpen(false), []);
 
+  const orderedButtons = [...buttons].sort((a, b) => {
+    const aIndex = BUTTON_ORDER.indexOf(a.label?.toLowerCase());
+    const bIndex = BUTTON_ORDER.indexOf(b.label?.toLowerCase());
+
+    if (aIndex === -1 && bIndex === -1) return 0;
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
+
   const renderButton = (button: ButtonData, isMobile: boolean) => {
     const key = button.label?.toLowerCase();
     const layout = BUTTON_LAYOUT[key];
     if (!layout) return null;
+
+    const mobileTileStyle = {
+      aspectRatio: `${layout.desktopWidth} / ${layout.desktopHeight}`,
+    };
 
     // Tender opens the modal instead of navigating
     if (key === "tender") {
@@ -87,19 +105,31 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
             type="button"
             aria-label={button.label}
             onClick={() => setTenderOpen(true)}
-            className="group relative block cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
+            className={[
+              "group relative block cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400",
+              isMobile ? layout.mobileHoverClass : null,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            style={isMobile ? mobileTileStyle : undefined}
           >
             {isMobile ? (
               <>
                 <img
                   src={button.defaultImageUrl}
                   alt={button.defaultImageAlt}
-                  className="h-auto w-[50vw] max-w-[220px] group-hover:hidden"
+                  className={[
+                    "absolute left-1/2 top-1/2 h-auto -translate-x-1/2 -translate-y-1/2 group-hover:hidden",
+                    layout.mobileClass,
+                  ].join(" ")}
                 />
                 <img
                   src={button.hoverImageUrl}
                   alt={button.hoverImageAlt}
-                  className="hidden h-auto w-[50vw] max-w-[220px] group-hover:block"
+                  className={[
+                    "absolute left-1/2 top-1/2 hidden h-auto -translate-x-1/2 -translate-y-1/2 group-hover:block",
+                    layout.mobileHoverClass,
+                  ].join(" ")}
                 />
               </>
             ) : (
@@ -136,17 +166,24 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
           <ChoiceTile
             href={button.href}
             ariaLabel={button.label}
-            className="group"
+            className={["group", layout.mobileHoverClass].join(" ")}
+            style={mobileTileStyle}
           >
             <img
               src={button.defaultImageUrl}
               alt={button.defaultImageAlt}
-              className="h-auto w-[50vw] max-w-[220px] group-hover:hidden group-[.tapped]:hidden"
+              className={[
+                "absolute left-1/2 top-1/2 h-auto -translate-x-1/2 -translate-y-1/2 group-hover:hidden group-[.tapped]:hidden",
+                layout.mobileClass,
+              ].join(" ")}
             />
             <img
               src={button.hoverImageUrl}
               alt={button.hoverImageAlt}
-              className="hidden h-auto w-[50vw] max-w-[220px] group-hover:block group-[.tapped]:block"
+              className={[
+                "absolute left-1/2 top-1/2 hidden h-auto -translate-x-1/2 -translate-y-1/2 group-hover:block group-[.tapped]:block",
+                layout.mobileHoverClass,
+              ].join(" ")}
             />
           </ChoiceTile>
         </div>
@@ -174,7 +211,12 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
             alt={button.hoverImageAlt}
             width={layout.desktopWidth}
             height={layout.desktopHeight}
-            className="hidden group-hover:block"
+            className={[
+              "hidden group-hover:block",
+              layout.desktopHoverImageClass,
+            ]
+              .filter(Boolean)
+              .join(" ")}
             unoptimized
             priority
           />
@@ -187,16 +229,20 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
     <>
       {/* Desktop layout */}
       <div className="hidden h-full md:grid md:grid-cols-2 md:grid-rows-2">
-        {buttons.map((button) => renderButton(button, false))}
+        {orderedButtons.map((button) => renderButton(button, false))}
       </div>
 
       {/* Mobile layout: 2x2 centered grid */}
       <div className="flex h-full flex-col items-center justify-between py-[8vh] md:hidden">
         <div className="flex flex-col items-center gap-12">
-          {buttons.slice(0, 2).map((button) => renderButton(button, true))}
+          {orderedButtons
+            .slice(0, 2)
+            .map((button) => renderButton(button, true))}
         </div>
         <div className="flex flex-col items-center gap-12">
-          {buttons.slice(2, 4).map((button) => renderButton(button, true))}
+          {orderedButtons
+            .slice(2, 4)
+            .map((button) => renderButton(button, true))}
         </div>
       </div>
 

@@ -42,6 +42,33 @@ export default class Game {
 		this.hideHUD = false;
 		this.images = [];
 		this.skierTrailColor = '#DDDDDD';
+		// BeFree: session-scoped counter of how many times the player has been reset by the
+		// tree-wall modal. Controls which poem line shows and when the "Take off your skis"
+		// button appears. Not persisted — resets on page reload.
+		// Start at 0 for the full experience: three tree-wall resets before the
+		// "Take off your skis" crossing.
+		this.wallResetCount = 0;
+		// Modal fires this many milliseconds after the skier's first crash of the session.
+		// Tweak to taste — 2000–2500 felt about right in the first playtest.
+		this.WALL_RESET_DELAY_MS = 1000;
+		this.WALL_POEMS = [
+			"The forest, the inner mind of the forest, cannot be penetrated.",
+			"Each tree a name you have forgotten.",
+			"The path closes behind you the moment you choose it.",
+		];
+		// Walking/exit cutscene tuning.
+		// Max speed cap while walking (skier uses normal mouse-based input, just slower).
+		this.WALKING_SPEED = 70;
+		// Forward world distance walked (matches HUD distance) before the exit cutscene
+		// kicks in.
+		this.WALKING_DISTANCE = 250;
+		// Pixels of skier render-offset (downward drift during exit cutscene) before the
+		// fade-to-black starts. At WALKING_SPEED=70 this is ~2.3s into the cutscene.
+		this.EXIT_FADE_START_OFFSET = 160;
+		this.EXIT_FADE_MS = 2000;          // fade-to-black duration after fade trigger
+		// Additional hold on a fully black screen after the fade completes, before the
+		// Game Over dialog appears.
+		this.GAME_OVER_DIALOG_DELAY_MS = 1500;
 		this.getHTMLElements();
 		this.loadAssets();
 		this.darkModeOff();
@@ -59,6 +86,22 @@ export default class Game {
 		this.slalom.init();
 		this.isPaused = false;
 		this.yDist = 0;
+		this.wallModalShown = false;
+		this.firstCrashTime = null;
+		// 'skiing' → 'walking' (after "Take off your skis") → 'exit' (walks off-screen)
+		// → 'game-over' (fade done, modal showing).
+		this.mode = 'skiing';
+		this.walkDistance = 0;
+		this.fadeStartTime = null;
+		// Hide the fade overlay if a previous run left it visible — snap back, don't animate.
+		if (typeof document !== 'undefined') {
+			const fadeEl = document.getElementById('exit-fade');
+			if (fadeEl) {
+				fadeEl.style.transition = 'none';
+				fadeEl.classList.remove('active');
+				requestAnimationFrame(() => { fadeEl.style.transition = ''; });
+			}
+		}
 		this.timestampFire = this.util.timestamp();
 		this.skierTrail = [];
 		this.currentTreeFireImg = this.tree_bare_fire1;
@@ -147,6 +190,205 @@ export default class Game {
 		for (let n = 0; n < this.gameObjectCount; n++) {
 			let type = this.getRandomGameObjectType();
 			this.spawnNewGameObjectAtStart(type);
+		}
+
+		this.spawnTreeWallAfterStart();
+	}
+
+	// Horizontal tree-line wall. Past a fixed absolute Y (measured by cumulative vertical
+	// distance skied — lateral movement doesn't count), every position is covered in trees.
+	// We track the skier's cumulative map position and the bounds of the already-spawned
+	// tree region in absolute map coords. Each frame we extend the spawned region to cover
+	// (viewport + buffer) around the skier, spawning only the newly-exposed strips.
+	TREE_WALL_CONFIG = {
+		spacing: 26,
+		jitter: 7,
+		types: ['tree_large', 'tree_large', 'tree_small', 'tree_bare'],
+		// How far outside the viewport (in world units) we keep tree coverage pre-spawned.
+		// Must stay well inside hasGameObjectBeenPassed's ±width*3/4 threshold — i.e.
+		// bufferX < width/4 (~160 for a 640-wide viewport), otherwise trees spawned on the
+		// leading edge get immediately recycled as "passed" the instant we create them.
+		bufferX: 80,
+		bufferY: 200,
+	};
+
+	spawnTreeWallAfterStart() {
+		// Cumulative skier position in absolute map coords (0,0 at game start/reset).
+		this.skierMapX = 0;
+		this.skierMapY = 0;
+		// The tree line: absolute Y past which everything is trees. Only forward distance
+		// counts — lateral motion doesn't bring the wall closer.
+		this.treeLineMapY = this.slalom.startY + 150;
+		// Bounds of the already-spawned tree region in absolute map coords.
+		this.wallSpawnedMinX = 0;
+		this.wallSpawnedMaxX = 0;
+		this.wallSpawnedMaxY = this.treeLineMapY;
+		this._expandTreeWall();
+	}
+
+	updateTreeWall(step) {
+		if (this.treeLineMapY == null) return;
+		this.skierMapX += this.skier.xv * step;
+		this.skierMapY += this.skier.yv * step;
+		this._expandTreeWall();
+	}
+
+	_expandTreeWall() {
+		const cfg = this.TREE_WALL_CONFIG;
+		const viewHalfW = window.innerWidth / 2 + cfg.bufferX;
+		const viewAhead = window.innerHeight + cfg.bufferY;
+
+		const visibleMinX = this.skierMapX - viewHalfW;
+		const visibleMaxX = this.skierMapX + viewHalfW;
+		const visibleMaxY = this.skierMapY + viewAhead;
+
+		if (visibleMaxY <= this.treeLineMapY) return;
+
+		// Snap bounds to spacing grid so subsequent fills align cleanly with prior ones.
+		const s = cfg.spacing;
+		const alignMin = (v) => Math.floor(v / s) * s;
+		const alignMax = (v) => Math.ceil(v / s) * s;
+
+		const newMinX = Math.min(this.wallSpawnedMinX, alignMin(visibleMinX));
+		const newMaxX = Math.max(this.wallSpawnedMaxX, alignMax(visibleMaxX));
+		const newMaxY = Math.max(this.wallSpawnedMaxY, alignMax(visibleMaxY));
+
+		// 1. Forward extension (within current X band).
+		if (newMaxY > this.wallSpawnedMaxY && this.wallSpawnedMaxX > this.wallSpawnedMinX) {
+			const fillY1 = Math.max(this.wallSpawnedMaxY, this.treeLineMapY);
+			this._fillTreeWallRegionMap(this.wallSpawnedMinX, this.wallSpawnedMaxX, fillY1, newMaxY);
+		}
+		// 2. Left extension (full depth of updated spawned region).
+		if (newMinX < this.wallSpawnedMinX) {
+			this._fillTreeWallRegionMap(newMinX, this.wallSpawnedMinX, this.treeLineMapY, newMaxY);
+		}
+		// 3. Right extension.
+		if (newMaxX > this.wallSpawnedMaxX) {
+			this._fillTreeWallRegionMap(this.wallSpawnedMaxX, newMaxX, this.treeLineMapY, newMaxY);
+		}
+
+		this.wallSpawnedMinX = newMinX;
+		this.wallSpawnedMaxX = newMaxX;
+		this.wallSpawnedMaxY = newMaxY;
+	}
+
+	// Player gave up on skiing: walk through the forest with collisions disabled.
+	_enterWalkingMode() {
+		this.mode = 'walking';
+		this.walkDistance = 0;
+		this.skier.enterWalking();
+	}
+
+	// After walking a certain distance, the world freezes and the skier drifts off-screen.
+	_enterExitCutscene() {
+		this.mode = 'exit';
+		this.skier.enterExit();
+	}
+
+	// Skier has left the viewport — fade to black, then show the final dialog.
+	_startFadeToGameOver() {
+		this.fadeStartTime = this.util.timestamp();
+		const fadeEl = document.getElementById('exit-fade');
+		if (fadeEl) {
+			fadeEl.style.transitionDuration = `${this.EXIT_FADE_MS}ms`;
+			fadeEl.classList.add('active');
+		}
+		setTimeout(() => this._showGameOverDialog(),
+			this.EXIT_FADE_MS + this.GAME_OVER_DIALOG_DELAY_MS);
+	}
+
+	// Close the BeFree $Window in the parent Win98 desktop. Same-origin iframe, so we can
+	// reach the enclosing os-gui window element via frameElement → closest('.os-window').
+	_closeBeFreeWindow() {
+		const iframe = window.frameElement;
+		const windowEl = iframe && iframe.closest && iframe.closest('.os-window');
+		const $win = windowEl && windowEl.$window;
+		if ($win && typeof $win.close === 'function') {
+			$win.close();
+		}
+	}
+
+	_showGameOverDialog() {
+		this.mode = 'game-over';
+		const showDialog = window.parent && window.parent.ShowDialogWindow;
+		if (typeof showDialog !== 'function') return;
+		try { new Audio('/assets/win95/chord.wav').play().catch(() => {}); } catch {}
+		showDialog({
+			title: 'BeFree',
+			text: 'Game over.',
+			modal: true,
+			buttons: [{
+				label: 'OK',
+				isDefault: true,
+				action: () => this._closeBeFreeWindow(),
+			}],
+		});
+	}
+
+	// Show the BeFree tree-wall dialog using the parent Win98 desktop's ShowDialogWindow
+	// (same API as every other app on the desktop — e.g. EverythingIsFineSweeper). Same-
+	// origin iframe so we can reach parent.ShowDialogWindow directly.
+	_showWallModal() {
+		this.wallModalShown = true;
+		const showDialog = window.parent && window.parent.ShowDialogWindow;
+		if (typeof showDialog !== 'function') {
+			// Shouldn't happen in the Tender OS build, but don't wedge the game if it does.
+			console.warn('[BeFree] parent.ShowDialogWindow unavailable; skipping wall modal.');
+			return;
+		}
+
+		// Same sound the Denial consent modal plays. chord.wav lives at the site root.
+		try { new Audio('/assets/win95/chord.wav').play().catch(() => {}); } catch {}
+
+		const isFourthCrossing = this.wallResetCount >= this.WALL_POEMS.length;
+		if (isFourthCrossing) {
+			showDialog({
+				title: 'BeFree',
+				text: 'You cannot ski through the forest.',
+				modal: true,
+				buttons: [{
+					label: 'Take off your skis',
+					isDefault: true,
+					action: () => this._enterWalkingMode(),
+				}],
+			});
+		} else {
+			showDialog({
+				title: 'BeFree',
+				text: this.WALL_POEMS[this.wallResetCount],
+				modal: true,
+				buttons: [{
+					label: 'OK',
+					isDefault: true,
+					action: () => {
+						this.wallResetCount++;
+						// restart() -> init() sets wallModalShown = false.
+						this.restart();
+					},
+				}],
+			});
+		}
+	}
+
+	_fillTreeWallRegionMap(mapX1, mapX2, mapY1, mapY2) {
+		const cfg = this.TREE_WALL_CONFIG;
+		const arrByType = {
+			tree_small: this.treesSmall,
+			tree_large: this.treesLarge,
+			tree_bare: this.treesBare,
+		};
+		// Convert absolute map coords to skier-relative coords at spawn time.
+		const offsetX = -this.skierMapX;
+		const offsetY = -this.skierMapY;
+		for (let mapY = mapY1; mapY < mapY2; mapY += cfg.spacing) {
+			for (let mapX = mapX1; mapX < mapX2; mapX += cfg.spacing) {
+				const jx = mapX + offsetX + this.util.randomInt(-cfg.jitter, cfg.jitter + 1);
+				const jy = mapY + offsetY + this.util.randomInt(-cfg.jitter, cfg.jitter + 1);
+				const type = cfg.types[this.util.randomInt(0, cfg.types.length)];
+				this.spawnNewGameObject(type, jx, jy);
+				const arr = arrByType[type];
+				arr[arr.length - 1].isWallTree = true;
+			}
 		}
 	}
 
@@ -310,26 +552,63 @@ export default class Game {
 		let gamepadInfo = this.gamepad.update();
 		if (this.isPaused) return;
 		this.currentTime = now;
-		this.skier.update(gamepadInfo);
-		this.lift.update(step);
-		this.npcHandler.update(step);
-		this.yeti.update(step);
-		this.updateSkierTrail(step);
-		this.updateLogo(step);
-		this.slalom.update(step);
+		this.skier.update(gamepadInfo, step);
+		// In skiing and walking modes the world scrolls, so run all of these. In exit /
+		// game-over the world is frozen — skip them to save a lot of CPU.
+		const worldActive = this.mode === 'skiing' || this.mode === 'walking';
+		if (worldActive) {
+			this.lift.update(step);
+			this.npcHandler.update(step);
+			this.yeti.update(step);
+			this.updateSkierTrail(step);
+			this.updateLogo(step);
+			this.slalom.update(step);
+		}
 
-		this.updateGameObjects(this.bumpsGroup, step);
-		this.updateGameObjects(this.bumpsSmall, step);
-		this.updateGameObjects(this.bumpsLarge, step);
-		this.updateGameObjects(this.treesSmall, step);
-		this.updateGameObjects(this.treesLarge, step);
-		this.updateGameObjects(this.treesBare, step);
-		this.updateGameObjects(this.rocks, step);
-		this.updateGameObjects(this.jumps, step);
-		this.updateGameObjects(this.stumps, step);
+		// Walking still scrolls the world so these loops still need to run. Only the exit
+		// cutscene fully freezes the world — skipping the per-object update + recycling
+		// + tree-wall streaming in exit is a big perf win on the way out.
+		if (worldActive) {
+			this.updateGameObjects(this.bumpsGroup, step);
+			this.updateGameObjects(this.bumpsSmall, step);
+			this.updateGameObjects(this.bumpsLarge, step);
+			this.updateGameObjects(this.treesSmall, step);
+			this.updateGameObjects(this.treesLarge, step);
+			this.updateGameObjects(this.treesBare, step);
+			this.updateGameObjects(this.rocks, step);
+			this.updateGameObjects(this.jumps, step);
+			this.updateGameObjects(this.stumps, step);
+			this.updateTreeWall(step);
 
-		// update total distance traveled vertically
-		this.yDist += this.skier.yv * step;
+			// update total distance traveled vertically
+			this.yDist += this.skier.yv * step;
+		}
+
+		// BeFree: a fixed delay after the session's first crash, interrupt with the reset
+		// modal (poem line, OK → restart). After 3 resets, the button becomes "Take off
+		// your skis" — see _showWallModal.
+		if (this.mode === 'skiing'
+			&& !this.wallModalShown
+			&& this.firstCrashTime != null
+			&& now - this.firstCrashTime >= this.WALL_RESET_DELAY_MS) {
+			this._showWallModal();
+		}
+
+		// Walking → exit cutscene after a fixed distance walked.
+		if (this.mode === 'walking') {
+			this.walkDistance += this.skier.yv * step;
+			if (this.walkDistance >= this.WALKING_DISTANCE) {
+				this._enterExitCutscene();
+			}
+		}
+
+		// Exit cutscene → start fade once the skier has walked far enough downward.
+		// We check the render offset, not skier.y: skier.y stays fixed so the world
+		// doesn't pan during the cutscene (see Skier._updateExit for why).
+		if (this.mode === 'exit' && this.fadeStartTime == null
+			&& (this.skier._exitYOffset || 0) > this.EXIT_FADE_START_OFFSET) {
+			this._startFadeToGameOver();
+		}
 
 		// flip the tree-on-fire image back and forth to create flicker effect
 		if (now - this.timestampFire >= 50) {
@@ -421,7 +700,11 @@ export default class Game {
 
 	// delete the game object and spawn a new game object of random type off screen
 	recycleGameObject(gameObjects, i) {
+		const obj = gameObjects[i];
 		gameObjects.splice(i, 1);
+		// Wall trees mostly delete (the streamer adds fresh ones) but occasionally respawn
+		// as a random object — that's the source of the chaotic jumps/rocks flooding the map.
+		if (obj && obj.isWallTree && Math.random() >= 0.25) return;
 		let xy = this.getRandomCoordinateOffScreen();
 		let type = this.getRandomGameObjectType();
 		this.spawnNewGameObject(type, xy.x, xy.y);
@@ -438,6 +721,8 @@ export default class Game {
 	// determine if the game object is colliding with the skier
 	isGameObjectCollidingWithSkier(object) {
 		if (!this.collisionsEnabled) return false;
+		// Once the player has taken off their skis, they walk straight through everything.
+		if (this.mode !== 'skiing') return false;
 		let rect1 = this.skier.hitbox;
 		let rect2 = { x: object.x + object.hbXOffset, y: object.y + object.hbYOffset, width: object.hbWidth, height: object.hbHeight };
 		return this.util.areRectanglesColliding(rect1, rect2);
@@ -447,6 +732,11 @@ export default class Game {
 	crashOnCollision() {
 		this.game.skier.isCrashed = true;
 		this.game.recordAndResetStyle();
+		// Only wall-tree crashes start the reset timer — hitting a random stump or tree
+		// above the tree line shouldn't count toward "stuck in the forest".
+		if (this.game.firstCrashTime == null && this.isWallTree) {
+			this.game.firstCrashTime = this.game.util.timestamp();
+		}
 		if (typeof this.isOnFire !== undefined) {
 			if (this.game.skier.isJumping) {
 				this.isOnFire = true;

@@ -10,6 +10,7 @@ type ChoiceTileProps = {
   href: string;
   ariaLabel: string;
   className: string;
+  style?: React.CSSProperties;
   children?: React.ReactNode;
 };
 
@@ -17,6 +18,7 @@ export function ChoiceTile({
   href,
   ariaLabel,
   className,
+  style,
   children,
 }: ChoiceTileProps) {
   const router = useRouter();
@@ -51,6 +53,7 @@ export function ChoiceTile({
       ]
         .filter(Boolean)
         .join(" ")}
+      style={style}
     >
       {children}
     </a>

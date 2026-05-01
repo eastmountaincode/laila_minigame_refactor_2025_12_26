@@ -81,6 +81,7 @@ export function ConsentModal({
 
       {/* Window */}
       <div
+        className="dreadful-dialog"
         style={{
           background: "silver",
           boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff",
@@ -98,6 +99,7 @@ export function ConsentModal({
       >
         {/* Title bar */}
         <div
+          className="dreadful-titlebar"
           style={{
             background: "linear-gradient(90deg, navy, #1084d0)",
             color: "#fff",
@@ -155,7 +157,7 @@ export function ConsentModal({
         </div>
 
         {/* Body */}
-        <div style={{ margin: 8 }}>
+        <div className="dreadful-body" style={{ margin: 8 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "8px 4px" }}>
             {/* Random Win95 icon */}
             <img

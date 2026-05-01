@@ -53,6 +53,7 @@ export default class Skier {
 		this.isAlive = true;
 		this.isEaten = false;
 		this.heading = 'left';
+		this._exitYOffset = 0;
 		this.updateMouseAndVelocityInfo();
 	}
 
@@ -79,10 +80,49 @@ export default class Skier {
 		this.skier_trick2 = this.game.util.loadImage('./img/skier_trick2.png', this);
 	}
 
+	// Enter the walking (skis off) mode. World freezes entirely; the character drifts
+	// downward on screen and the player can steer left/right via the mouse.
+	enterWalking() {
+		this.isCrashed = false;
+		this.isJumping = false;
+		this.isStopped = false;
+		this.jumpOffset = 0;
+		this.xv = 0;
+		this.yv = 0;
+		this._walkFrameStart = this.game.util.timestamp();
+	}
+
+	// Enter the off-screen cutscene. Input disabled; world frozen; skier's render-y
+	// offset drifts downward so the character walks off the bottom of the canvas while
+	// the environment stays in place.
+	enterExit() {
+		this.xv = 0;
+		this.yv = 0;
+		this._exitYOffset = 0;
+		this._walkFrameStart = this.game.util.timestamp();
+	}
+
 	// update the state of the skier
-	update(gamepadInfo) {
+	update(gamepadInfo, step) {
+		if (this.game.mode === 'exit') {
+			this._updateExit(step);
+			return;
+		}
+		if (this.game.mode === 'game-over') {
+			return;
+		}
+		// Walking shares the skiing input logic (mouse-above-skier stops, mouse-below
+		// moves, etc.) — just with a lower max speed, and with the walking sprite painted
+		// over whatever the skiing logic picked. The sprite override happens at the
+		// bottom of this method.
+		const isWalking = this.game.mode === 'walking';
+		const origMaxSpeed = this.maxSpeed;
+		if (isWalking) this.maxSpeed = this.game.WALKING_SPEED;
 		this.updateMouseAndVelocityInfo(gamepadInfo);
-		if (!this.isAlive) return;
+		if (!this.isAlive) {
+			if (isWalking) this.maxSpeed = origMaxSpeed;
+			return;
+		}
 
 		if (this.heading == 'left') {
 			if (this.isJumping) {
@@ -229,6 +269,45 @@ export default class Skier {
 				this.yv = 0;
 			}
 		}
+
+		if (isWalking) {
+			this.maxSpeed = origMaxSpeed;
+			// Paint the walking sprite over whatever heading-based sprite the skiing logic
+			// chose. Placeholder uses the skate frames — swap these two references for the
+			// real walking PNGs when ready.
+			if (this.isStopped) {
+				this.currentImage = this.skier_left;
+			} else if (this.xv < -5) {
+				this.currentImage = this.skier_skate_left;
+			} else if (this.xv > 5) {
+				this.currentImage = this.skier_skate_right;
+			} else {
+				this.currentImage = this._currentWalkImage();
+			}
+		}
+	}
+
+	// Pick the current walking frame (two-frame loop, 300ms each). Placeholder uses the
+	// existing skate sprites — swap `skier_skate_left` / `skier_skate_right` for the real
+	// walking PNGs when they're ready.
+	_currentWalkImage() {
+		const now = this.game.util.timestamp();
+		const start = this._walkFrameStart || now;
+		const frameMs = 300;
+		const frame = Math.floor((now - start) / frameMs) % 2;
+		return frame === 0 ? this.skier_skate_left : this.skier_skate_right;
+	}
+
+	_updateExit(step) {
+		// Input locked. World is frozen — we move the skier's render offset downward so
+		// it visibly walks off the bottom while the environment stays put. We must not
+		// touch `this.y` here because every other object is drawn relative to it; moving
+		// skier.y would pan the whole scene.
+		this.xv = 0;
+		this.yv = 0;
+		this._exitYOffset = (this._exitYOffset || 0) + this.game.WALKING_SPEED * step;
+		this.currentImage = this._currentWalkImage();
+		this.calculateCurrentSpeed();
 	}
 
 	// return a string indicating the orientation of the skier based on the angle between the mouse cursor and the skier
@@ -522,6 +601,6 @@ export default class Skier {
 			xOffset = -6;
 			break;
 		}
-		ctx.drawImage(this.currentImage, this.x + xOffset, this.y - this.jumpOffset);
+		ctx.drawImage(this.currentImage, this.x + xOffset, this.y + (this._exitYOffset || 0) - this.jumpOffset);
 	}
 }

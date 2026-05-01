@@ -337,50 +337,52 @@ export function DrawingCanvas() {
         <div className="fixed bottom-[10%] left-1/2 -translate-x-1/2 flex gap-2 md:bottom-[3%]" style={{ whiteSpace: "nowrap" }}>
           <button
             onClick={() => { playClick(); setShowThisIsMe(false); setTimeout(() => setShowNotGoodEnough(true), 2300); }}
-            className="win95-btn cursor-pointer"
+            className="win95-btn bargaining-cartoon-btn cursor-pointer"
             style={{
               background: "silver",
               border: "none",
-              boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
-              padding: "4px 20px",
-              fontSize: 11,
+              boxShadow: "inset -3px -3px #0a0a0a, inset 3px 3px #fff, inset -6px -6px #777, inset 6px 6px #dfdfdf, 3px 3px 0 #0a0a0a",
+              padding: "0 18px",
+              fontSize: 17,
               fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
               WebkitFontSmoothing: "none",
-              minHeight: 23,
+              minHeight: 42,
+              minWidth: 220,
               color: "#222",
-              outline: "1px dotted #000",
-              outlineOffset: "-4px",
+              fontWeight: "bold",
             }}
           >
             this is what i look like
           </button>
           <button
             onClick={() => { playClick(); handleDoubleClick(); }}
-            className="win95-btn cursor-pointer"
+            className="win95-btn bargaining-cartoon-btn cursor-pointer"
             style={{
               background: "silver",
               border: "none",
-              boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
-              padding: "4px 12px",
-              fontSize: 11,
+              boxShadow: "inset -3px -3px #0a0a0a, inset 3px 3px #fff, inset -6px -6px #777, inset 6px 6px #dfdfdf, 3px 3px 0 #0a0a0a",
+              padding: "0 18px",
+              fontSize: 17,
               fontFamily: '"Pixelated MS Sans Serif", Arial, sans-serif',
               WebkitFontSmoothing: "none",
-              minHeight: 23,
+              minHeight: 42,
+              minWidth: 92,
               color: "#222",
+              fontWeight: "bold",
             }}
           >
             reset
           </button>
           <button
             onClick={() => { playClick(); handleCamera(); }}
-            className="win95-btn cursor-pointer"
+            className="win95-btn bargaining-cartoon-btn bargaining-cartoon-btn-icon cursor-pointer"
             style={{
               background: "silver",
               border: "none",
-              boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
-              padding: "4px 8px",
-              minHeight: 23,
-              minWidth: 30,
+              boxShadow: "inset -3px -3px #0a0a0a, inset 3px 3px #fff, inset -6px -6px #777, inset 6px 6px #dfdfdf, 3px 3px 0 #0a0a0a",
+              padding: "0 10px",
+              minHeight: 42,
+              minWidth: 52,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -391,7 +393,7 @@ export function DrawingCanvas() {
             <img
               src="/assets/win95/camera.png"
               alt="Camera"
-              style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, imageRendering: "pixelated" }}
+              style={{ width: 22, height: 22, minWidth: 22, minHeight: 22, imageRendering: "pixelated" }}
             />
           </button>
         </div>
@@ -406,6 +408,7 @@ export function DrawingCanvas() {
           }}
         >
           <div
+            className="dreadful-dialog"
             style={{
               background: "silver",
               boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff",
@@ -422,6 +425,7 @@ export function DrawingCanvas() {
           >
             {/* Title bar */}
             <div
+              className="dreadful-titlebar"
               style={{
                 background: "linear-gradient(90deg, navy, #1084d0)",
                 color: "#fff",
@@ -456,7 +460,7 @@ export function DrawingCanvas() {
             </div>
 
             {/* Body */}
-            <div style={{ margin: 8 }}>
+            <div className="dreadful-body" style={{ margin: 8 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "8px 4px" }}>
                 <img
                   src="/assets/win95/error_icon.png"
@@ -474,7 +478,7 @@ export function DrawingCanvas() {
                 <div style={{ display: "flex", justifyContent: "center", gap: 6, padding: "8px 0 4px" }}>
                   <button
                     onClick={() => { playClick(); router.push("/bargaining/treat"); }}
-                    className="win95-btn cursor-pointer"
+                    className="win95-btn bargaining-cartoon-btn cursor-pointer"
                     style={{
                       background: "silver",
                       border: "none",
@@ -492,7 +496,7 @@ export function DrawingCanvas() {
                   </button>
                   <button
                     onClick={() => { playClick(); handleTryAgain(); }}
-                    className="win95-btn cursor-pointer"
+                    className="win95-btn bargaining-cartoon-btn cursor-pointer"
                     style={{
                       background: "silver",
                       border: "none",
@@ -510,7 +514,7 @@ export function DrawingCanvas() {
                   </button>
                   <button
                     onClick={() => { playClick(); handleCamera(); }}
-                    className="win95-btn cursor-pointer"
+                    className="win95-btn bargaining-cartoon-btn bargaining-cartoon-btn-icon cursor-pointer"
                     style={{
                       background: "silver",
                       border: "none",

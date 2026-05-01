@@ -105,3 +105,177 @@ body.dev-mode [data-bg-media] > * {
 .win95-btn-default:active {
   box-shadow: inset 2px 2px #0a0a0a, inset -1px -1px #0a0a0a, inset -2px -2px #fff, inset 3px 3px grey, inset -3px -3px #dfdfdf !important;
 }
+
+/* Exaggerated "cartoon Windows" treatment for the album popups. */
+.dreadful-dialog {
+  width: min(92vw, 500px) !important;
+  min-width: min(92vw, 500px) !important;
+  padding: 6px !important;
+  box-shadow:
+    inset -4px -4px #0a0a0a,
+    inset 4px 4px #fff,
+    inset -8px -8px #777,
+    inset 8px 8px #dfdfdf !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+}
+
+.dreadful-titlebar {
+  min-height: 32px !important;
+  padding: 6px 5px 6px 7px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+}
+
+.dreadful-titlebar span {
+  overflow-wrap: anywhere;
+}
+
+.dreadful-titlebar .win95-btn {
+  min-width: 28px !important;
+  min-height: 24px !important;
+  background-position: center !important;
+  box-shadow:
+    inset -2px -2px #0a0a0a,
+    inset 2px 2px #fff,
+    inset -4px -4px #777,
+    inset 4px 4px #dfdfdf !important;
+  image-rendering: pixelated;
+}
+
+.dreadful-body {
+  margin: 18px !important;
+}
+
+.dreadful-body p,
+.dreadful-body label {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+}
+
+.dreadful-body img[src*="/assets/win95/"]:not([src*="camera"]) {
+  width: 54px !important;
+  height: 54px !important;
+  image-rendering: pixelated;
+}
+
+.dreadful-body input {
+  height: 38px !important;
+  padding: 6px 8px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  box-shadow:
+    inset -2px -2px #fff,
+    inset 2px 2px #777,
+    inset -4px -4px #dfdfdf,
+    inset 4px 4px #0a0a0a !important;
+}
+
+.dreadful-body .win95-btn {
+  min-width: 112px !important;
+  min-height: 40px !important;
+  padding: 0 18px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  box-shadow:
+    inset -2px -2px #0a0a0a,
+    inset 2px 2px #fff,
+    inset -4px -4px #777,
+    inset 4px 4px #dfdfdf !important;
+}
+
+.dreadful-body .win95-btn-default {
+  box-shadow:
+    inset -3px -3px #0a0a0a,
+    inset 2px 2px #0a0a0a,
+    inset 4px 4px #fff,
+    inset -5px -5px #777,
+    inset 5px 5px #dfdfdf !important;
+}
+
+.dreadful-body .win95-btn:active {
+  box-shadow:
+    inset 3px 3px #0a0a0a,
+    inset -2px -2px #fff,
+    inset 5px 5px #777,
+    inset -5px -5px #dfdfdf !important;
+}
+
+.dreadful-body .win95-btn[aria-label="Save image"] {
+  min-width: 46px !important;
+  padding: 0 8px !important;
+}
+
+.cartoon-win95-btn,
+.bargaining-cartoon-btn {
+  background: silver !important;
+  border: none !important;
+  color: #222 !important;
+  font-family: "Pixelated MS Sans Serif", Arial, sans-serif !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  min-height: 42px !important;
+  min-width: 118px !important;
+  padding: 0 18px !important;
+  outline: none !important;
+  box-shadow:
+    inset -3px -3px #0a0a0a,
+    inset 3px 3px #fff,
+    inset -6px -6px #777,
+    inset 6px 6px #dfdfdf,
+    3px 3px 0 #0a0a0a !important;
+  image-rendering: pixelated;
+  text-rendering: geometricPrecision;
+}
+
+.cartoon-win95-btn:active,
+.bargaining-cartoon-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow:
+    inset 4px 4px #0a0a0a,
+    inset -2px -2px #fff,
+    inset 7px 7px #777,
+    inset -7px -7px #dfdfdf !important;
+}
+
+.cartoon-win95-btn-icon,
+.bargaining-cartoon-btn-icon {
+  min-width: 46px !important;
+  padding: 0 10px !important;
+}
+
+@media (max-width: 520px) {
+  .dreadful-dialog {
+    width: 88vw !important;
+    min-width: 88vw !important;
+  }
+
+  .dreadful-body {
+    margin: 15px !important;
+  }
+
+  .dreadful-body p,
+  .dreadful-body label {
+    font-size: 16px !important;
+  }
+
+  .dreadful-body .win95-btn {
+    min-width: 98px !important;
+    font-size: 15px !important;
+  }
+
+  .cartoon-win95-btn,
+  .bargaining-cartoon-btn {
+    font-size: 15px !important;
+    min-height: 38px !important;
+    min-width: 96px !important;
+    padding: 0 12px !important;
+  }
+
+  .cartoon-win95-btn-icon,
+  .bargaining-cartoon-btn-icon {
+    min-width: 42px !important;
+    padding: 0 8px !important;
+  }
+}
