@@ -15,6 +15,25 @@ const playClick = sounds.click;
 
 type PopupView = "main" | "confirm";
 
+const CONTROL_QUESTION = "Have you mastered your desire for control?";
+
+function WaveText({ text }: { text: string }) {
+  return (
+    <span className="bargaining-wave-text" aria-label={text}>
+      {text.split("").map((char, index) => (
+        <span
+          key={`${char}-${index}`}
+          aria-hidden="true"
+          className="bargaining-wave-char"
+          style={{ animationDelay: `${index * -70}ms` }}
+        >
+          {char === " " ? "\u00a0" : char}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function FinalPopup() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -220,7 +239,7 @@ export function FinalPopup() {
                   style={{ flexShrink: 0, imageRendering: "pixelated" }}
                 />
                 <p style={{ margin: 0, paddingTop: 6, color: "#222" }}>
-                  Have you mastered your desire for control?
+                  <WaveText text={CONTROL_QUESTION} />
                 </p>
               </div>
 

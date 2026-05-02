@@ -16,7 +16,7 @@ interface TenderOSModalProps {
 // Below this width, scale iframe contents so win98 desktop has room
 const SCALE_BREAKPOINT = 700;
 const MIN_IFRAME_WIDTH = 800;
-const TENDER_OS_SRC = "/win98-web/index.html?v=no-themes-2026-04-30";
+const TENDER_OS_SRC = "/win98-web/index.html?v=ie-home-2026-05-01";
 
 export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
   const [loaded, setLoaded] = useState(false);

@@ -258,7 +258,7 @@ export default function CompletePage() {
                     onClick={() => { playClick(); setPopupView("confirm"); }}
                     style={dialogBtnStyle}
                   >
-                    No
+                    no I am not
                   </button>
                 </div>
               </form>

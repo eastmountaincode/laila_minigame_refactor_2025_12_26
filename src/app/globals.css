@@ -3,8 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 @theme inline {
@@ -32,7 +33,8 @@
 
 @font-face {
   font-family: "Pixelated Times New Roman";
-  src: url("/assets/webflow/fonts/pixelated-times-new-roman.otf") format("opentype");
+  src: url("/assets/webflow/fonts/pixelated-times-new-roman.otf")
+    format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -42,21 +44,31 @@
   font-family: "Pixelated MS Sans Serif";
   font-style: normal;
   font-weight: 400;
-  src: url("/assets/win95/ms_sans_serif.woff2") format("woff2"),
-       url("/assets/win95/ms_sans_serif.woff") format("woff");
+  src:
+    url("/assets/win95/ms_sans_serif.woff2") format("woff2"),
+    url("/assets/win95/ms_sans_serif.woff") format("woff");
 }
 
 @font-face {
   font-family: "Pixelated MS Sans Serif";
   font-style: normal;
   font-weight: 700;
-  src: url("/assets/win95/ms_sans_serif_bold.woff2") format("woff2"),
-       url("/assets/win95/ms_sans_serif_bold.woff") format("woff");
+  src:
+    url("/assets/win95/ms_sans_serif_bold.woff2") format("woff2"),
+    url("/assets/win95/ms_sans_serif_bold.woff") format("woff");
 }
 
 @font-face {
   font-family: "Apple Chancery";
   src: url("/assets/webflow/fonts/Apple Chancery.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pyxis";
+  src: url("/fonts/pyxis-regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -99,11 +111,40 @@ body.dev-mode [data-bg-media] > * {
 
 /* Win95 button pressed state */
 .win95-btn:active {
-  box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey !important;
+  box-shadow:
+    inset -1px -1px #fff,
+    inset 1px 1px #0a0a0a,
+    inset -2px -2px #dfdfdf,
+    inset 2px 2px grey !important;
 }
 
 .win95-btn-default:active {
-  box-shadow: inset 2px 2px #0a0a0a, inset -1px -1px #0a0a0a, inset -2px -2px #fff, inset 3px 3px grey, inset -3px -3px #dfdfdf !important;
+  box-shadow:
+    inset 2px 2px #0a0a0a,
+    inset -1px -1px #0a0a0a,
+    inset -2px -2px #fff,
+    inset 3px 3px grey,
+    inset -3px -3px #dfdfdf !important;
+}
+
+.locked-choice {
+  cursor: not-allowed;
+  isolation: isolate;
+}
+
+.locked-choice img {
+  filter: blur(12px) brightness(1.3) contrast(0.42) saturate(0.5);
+  opacity: 0.9;
+  transition:
+    filter 220ms ease,
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.locked-choice:hover img,
+.locked-choice.tapped img {
+  filter: blur(14px) brightness(1.4) contrast(0.46) saturate(0.54);
+  opacity: 0.95;
 }
 
 /* Exaggerated "cartoon Windows" treatment for the album popups. */
@@ -245,6 +286,39 @@ body.dev-mode [data-bg-media] > * {
   padding: 0 10px !important;
 }
 
+.bargaining-action-bar {
+  flex-wrap: nowrap;
+  max-width: min(100vw, 480px);
+  width: max-content;
+}
+
+.bargaining-wave-text {
+  display: inline-block;
+}
+
+.bargaining-wave-char {
+  display: inline-block;
+  animation: bargaining-wave 1.15s ease-in-out infinite;
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+@keyframes bargaining-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bargaining-wave-char {
+    animation: none;
+  }
+}
+
 @media (max-width: 520px) {
   .dreadful-dialog {
     width: 88vw !important;
@@ -277,5 +351,30 @@ body.dev-mode [data-bg-media] > * {
   .bargaining-cartoon-btn-icon {
     min-width: 42px !important;
     padding: 0 8px !important;
+  }
+
+  .bargaining-action-bar {
+    bottom: max(18px, env(safe-area-inset-bottom)) !important;
+    flex-wrap: wrap;
+    max-width: calc(100vw - 20px);
+    width: min(220px, calc(100vw - 20px));
+  }
+
+  .bargaining-action-bar .bargaining-cartoon-btn:not(.bargaining-cartoon-btn-icon) {
+    flex: 0 1 auto;
+    white-space: nowrap;
+  }
+
+  .bargaining-action-bar .bargaining-cartoon-btn:first-child {
+    min-width: min(220px, calc(100vw - 20px)) !important;
+    width: min(220px, calc(100vw - 20px));
+  }
+
+  .bargaining-action-bar .bargaining-cartoon-btn:nth-child(2) {
+    min-width: 92px !important;
+  }
+
+  .bargaining-action-bar .bargaining-cartoon-btn-icon {
+    flex: 0 0 42px;
   }
 }

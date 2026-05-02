@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { TypedText } from "@/components/denial/TypedText";
 
@@ -32,6 +33,114 @@ const ROSE_SIZE_MOBILE = 180;
 const ROSE_SIZE_DESKTOP = 270;
 
 export default function AreYouSurePage() {
+  const yButtonRef = useRef<HTMLAnchorElement>(null);
+  const yGlyphRef = useRef<HTMLSpanElement>(null);
+  const ySpinRef = useRef<Animation | null>(null);
+  const yInertiaRef = useRef<Animation | null>(null);
+  const yRotationRef = useRef(0);
+  const [roseOffset, setRoseOffset] = useState({ x: 0, y: 0 });
+  const [isRoseDragging, setIsRoseDragging] = useState(false);
+  const roseDragStart = useRef({ pointerX: 0, pointerY: 0, offsetX: 0, offsetY: 0 });
+
+  const getCurrentYRotation = (yGlyph: HTMLElement) => {
+    const transform = getComputedStyle(yGlyph).transform;
+    if (!transform || transform === "none") return yRotationRef.current;
+
+    const matrix = new DOMMatrixReadOnly(transform);
+    return (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI;
+  };
+
+  const handleYMouseEnter = () => {
+    const yGlyph = yGlyphRef.current;
+    if (!yGlyph) return;
+
+    if (yInertiaRef.current) {
+      yRotationRef.current = getCurrentYRotation(yGlyph);
+      yInertiaRef.current.cancel();
+      yInertiaRef.current = null;
+    }
+
+    ySpinRef.current?.cancel();
+    const from = yRotationRef.current;
+    const to = from + 360;
+
+    ySpinRef.current = yGlyph.animate(
+      [
+        { transform: `rotate(${from}deg)` },
+        { transform: `rotate(${to}deg)` },
+      ],
+      {
+        duration: 80,
+        easing: "linear",
+        iterations: Infinity,
+        fill: "forwards",
+      }
+    );
+
+    ySpinRef.current.onfinish = () => {
+      ySpinRef.current = null;
+    };
+  };
+
+  const handleYMouseLeave = () => {
+    const yGlyph = yGlyphRef.current;
+    const spin = ySpinRef.current;
+    if (!yGlyph || !spin) return;
+
+    yRotationRef.current = getCurrentYRotation(yGlyph);
+    yGlyph.style.transform = `rotate(${yRotationRef.current}deg)`;
+    spin.cancel();
+    ySpinRef.current = null;
+
+    const coastTo = yRotationRef.current + 240;
+    yInertiaRef.current = yGlyph.animate(
+      [
+        { transform: `rotate(${yRotationRef.current}deg)` },
+        { transform: `rotate(${coastTo}deg)` },
+      ],
+      {
+        duration: 220,
+        easing: "cubic-bezier(0.05, 0.72, 0.18, 1)",
+        fill: "forwards",
+      }
+    );
+
+    yInertiaRef.current.onfinish = () => {
+      yRotationRef.current = coastTo;
+      yGlyph.style.transform = `rotate(${coastTo}deg)`;
+      yInertiaRef.current?.cancel();
+      yInertiaRef.current = null;
+    };
+  };
+
+  const handleRosePointerDown = (e: React.PointerEvent<HTMLImageElement>) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    roseDragStart.current = {
+      pointerX: e.clientX,
+      pointerY: e.clientY,
+      offsetX: roseOffset.x,
+      offsetY: roseOffset.y,
+    };
+    setIsRoseDragging(true);
+  };
+
+  const handleRosePointerMove = (e: React.PointerEvent<HTMLImageElement>) => {
+    if (!isRoseDragging) return;
+
+    setRoseOffset({
+      x: roseDragStart.current.offsetX + e.clientX - roseDragStart.current.pointerX,
+      y: roseDragStart.current.offsetY + e.clientY - roseDragStart.current.pointerY,
+    });
+  };
+
+  const handleRosePointerEnd = (e: React.PointerEvent<HTMLImageElement>) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setIsRoseDragging(false);
+  };
+
   return (
     <main className="relative min-h-dvh overflow-hidden bg-black text-white">
       {/* Typed Text - top center */}
@@ -54,10 +163,15 @@ export default function AreYouSurePage() {
       <div className="yn-group fixed -translate-x-1/2 -translate-y-[-50%]">
         {/* Y Button */}
         <Link
+          ref={yButtonRef}
           href="/denial/complete"
-          className="y-button absolute font-[Pixeltimesnewroman,_sans-serif] text-[60px] text-white hover:text-pink-400 md:text-[100px]"
+          className="y-button absolute inline-block font-[Pixeltimesnewroman,_sans-serif] text-[60px] leading-none text-white hover:text-pink-400 md:text-[100px]"
+          onMouseEnter={handleYMouseEnter}
+          onMouseLeave={handleYMouseLeave}
         >
-          Y
+          <span ref={yGlyphRef} className="y-glyph inline-block">
+            Y
+          </span>
         </Link>
 
         {/* Rose Image - relative so it gives the container size */}
@@ -65,7 +179,19 @@ export default function AreYouSurePage() {
           src="/assets/webflow/images/rose.png"
           alt=""
           className="rose-image"
-          style={{ marginTop: ROSE_TOP, marginLeft: ROSE_LEFT }}
+          draggable={false}
+          onPointerDown={handleRosePointerDown}
+          onPointerMove={handleRosePointerMove}
+          onPointerUp={handleRosePointerEnd}
+          onPointerCancel={handleRosePointerEnd}
+          style={{
+            marginTop: ROSE_TOP,
+            marginLeft: ROSE_LEFT,
+            transform: `translate(${roseOffset.x}px, ${roseOffset.y}px)`,
+            cursor: isRoseDragging ? "grabbing" : "grab",
+            touchAction: "none",
+            userSelect: "none",
+          }}
         />
 
         {/* N Button */}
@@ -89,6 +215,8 @@ export default function AreYouSurePage() {
         .y-button {
           top: ${Y_TOP_MOBILE};
           left: ${Y_LEFT_MOBILE};
+          padding: 24px;
+          margin: -24px 0 0 -24px;
         }
         .n-button {
           top: ${N_TOP_MOBILE};
@@ -105,6 +233,8 @@ export default function AreYouSurePage() {
           .y-button {
             top: ${Y_TOP_DESKTOP};
             left: ${Y_LEFT_DESKTOP};
+            padding: 32px;
+            margin: -32px 0 0 -32px;
           }
           .n-button {
             top: ${N_TOP_DESKTOP};

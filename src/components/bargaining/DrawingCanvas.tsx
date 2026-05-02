@@ -6,6 +6,7 @@ import { useDevMode } from "@/components/DevModeProvider";
 
 import { sounds } from "@/lib/sounds";
 const playClick = sounds.click;
+const playQuestionSound = sounds.chord;
 
 // Drawing text - you can customize this with your own content
 const DRAWING_TEXT = "Flash flood you drown. But it's the ocean inside of my head. I feed the mountain. My affirmations are avalanches. And it's so not me to want it to bleed. But there's something sweet. There's a ledger they'll make with your name. Will I do anything? I'll do anything. Apologize. I never wanted to scare you. A winded sigh. Dry hurricanes all around the truth. And it's so not me to want it to bleed. But there's something sweet. There's a ledger they'll make with your name. Will I do anything? I'll do anything. ";
@@ -281,6 +282,12 @@ export function DrawingCanvas() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
+  useEffect(() => {
+    if (showNotGoodEnough) {
+      playQuestionSound();
+    }
+  }, [showNotGoodEnough]);
+
   // Show buttons 1.5 seconds after "not good enough" popup appears
   useEffect(() => {
     if (showNotGoodEnough && !showNotGoodEnoughButtons) {
@@ -334,9 +341,9 @@ export function DrawingCanvas() {
 
       {/* "This is what I look like" + camera buttons */}
       {showThisIsMe && !showNotGoodEnough && (
-        <div className="fixed bottom-[10%] left-1/2 -translate-x-1/2 flex gap-2 md:bottom-[3%]" style={{ whiteSpace: "nowrap" }}>
+        <div className="bargaining-action-bar fixed bottom-[3%] left-1/2 -translate-x-1/2 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => { playClick(); setShowThisIsMe(false); setTimeout(() => setShowNotGoodEnough(true), 2300); }}
+            onClick={() => { setShowThisIsMe(false); setTimeout(() => setShowNotGoodEnough(true), 2300); }}
             className="win95-btn bargaining-cartoon-btn cursor-pointer"
             style={{
               background: "silver",

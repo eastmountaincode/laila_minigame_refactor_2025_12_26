@@ -3,7 +3,9 @@
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { ChoiceTile } from "@/components/ChoiceTile";
+import { CreditsModal } from "@/components/CreditsModal";
 import { TenderOSModal } from "@/components/TenderOSModal";
+import { sounds } from "@/lib/sounds";
 
 const BUTTON_LAYOUT: Record<
   string,
@@ -69,11 +71,20 @@ interface HomeButtonsProps {
 }
 
 const BUTTON_ORDER = ["bargaining", "anger", "denial", "tender"];
+const LOCKED_CHOICES = new Set(["anger"]);
+const LOCKED_EFFECT = "glimmer";
 
 export function HomeButtons({ buttons }: HomeButtonsProps) {
   const [tenderOpen, setTenderOpen] = useState(false);
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const [lockedPreviewKey, setLockedPreviewKey] = useState<string | null>(null);
 
   const handleTenderClose = useCallback(() => setTenderOpen(false), []);
+  const handleCreditsClose = useCallback(() => setCreditsOpen(false), []);
+  const handleCreditsOpen = useCallback(() => {
+    sounds.click();
+    setCreditsOpen(true);
+  }, []);
 
   const orderedButtons = [...buttons].sort((a, b) => {
     const aIndex = BUTTON_ORDER.indexOf(a.label?.toLowerCase());
@@ -93,6 +104,88 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
     const mobileTileStyle = {
       aspectRatio: `${layout.desktopWidth} / ${layout.desktopHeight}`,
     };
+
+    if (LOCKED_CHOICES.has(key)) {
+      const isTapped = lockedPreviewKey === key;
+      const lockedClassName = [
+        "group locked-choice",
+        `locked-choice--${LOCKED_EFFECT}`,
+        "relative block select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400",
+        isMobile ? layout.mobileHoverClass : null,
+        isTapped ? "tapped" : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      const handleLockedTouchStart = (event: React.TouchEvent) => {
+        event.preventDefault();
+        setLockedPreviewKey(key);
+        window.setTimeout(() => {
+          setLockedPreviewKey((currentKey) =>
+            currentKey === key ? null : currentKey
+          );
+        }, 700);
+      };
+
+      return (
+        <div
+          key={button._id}
+          className={isMobile ? "pointer-events-auto" : layout.desktopPosition}
+        >
+          <button
+            type="button"
+            aria-label={`${button.label} coming soon`}
+            aria-disabled="true"
+            className={lockedClassName}
+            onClick={(event) => event.preventDefault()}
+            onTouchStart={handleLockedTouchStart}
+            style={isMobile ? mobileTileStyle : undefined}
+          >
+            {isMobile ? (
+              <>
+                <img
+                  src={button.defaultImageUrl}
+                  alt={button.defaultImageAlt}
+                  className={[
+                    "absolute left-1/2 top-1/2 h-auto -translate-x-1/2 -translate-y-1/2 group-hover:hidden group-[.tapped]:hidden",
+                    layout.mobileClass,
+                  ].join(" ")}
+                />
+                <img
+                  src={button.hoverImageUrl}
+                  alt={button.hoverImageAlt}
+                  className={[
+                    "absolute left-1/2 top-1/2 hidden h-auto -translate-x-1/2 -translate-y-1/2 group-hover:block group-[.tapped]:block",
+                    layout.mobileHoverClass,
+                  ].join(" ")}
+                />
+              </>
+            ) : (
+              <>
+                <Image
+                  src={button.defaultImageUrl}
+                  alt={button.defaultImageAlt}
+                  width={layout.desktopWidth}
+                  height={layout.desktopHeight}
+                  className="group-hover:hidden"
+                  unoptimized
+                  priority
+                />
+                <Image
+                  src={button.hoverImageUrl}
+                  alt={button.hoverImageAlt}
+                  width={layout.desktopWidth}
+                  height={layout.desktopHeight}
+                  className="hidden group-hover:block"
+                  unoptimized
+                  priority
+                />
+              </>
+            )}
+          </button>
+        </div>
+      );
+    }
 
     // Tender opens the modal instead of navigating
     if (key === "tender") {
@@ -247,11 +340,12 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
       </div>
 
       {/* Info icon — hidden when modal is open */}
-      {!tenderOpen && (
+      {!tenderOpen && !creditsOpen && (
         <div className="fixed z-40 bottom-[clamp(12px,3vw,36px)] right-[clamp(12px,3vw,36px)] md:bottom-auto md:top-1/2 md:-translate-y-1/2">
           <button
             type="button"
             aria-label="Info"
+            onClick={handleCreditsOpen}
             className="pointer-events-auto cursor-pointer"
           >
             <Image
@@ -264,6 +358,8 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
           </button>
         </div>
       )}
+
+      <CreditsModal isOpen={creditsOpen} onClose={handleCreditsClose} />
 
       {/* Tender OS Modal */}
       <TenderOSModal isOpen={tenderOpen} onClose={handleTenderClose} />
