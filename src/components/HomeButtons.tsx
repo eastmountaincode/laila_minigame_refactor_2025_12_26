@@ -72,7 +72,6 @@ interface HomeButtonsProps {
 
 const BUTTON_ORDER = ["bargaining", "anger", "denial", "tender"];
 const LOCKED_CHOICES = new Set(["anger", "tender"]);
-const LOCKED_EFFECT = "glimmer";
 
 export function HomeButtons({ buttons }: HomeButtonsProps) {
   const [tenderOpen, setTenderOpen] = useState(false);
@@ -107,14 +106,8 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
 
     if (LOCKED_CHOICES.has(key)) {
       const isTapped = lockedPreviewKey === key;
-      const lockedTileStyle: React.CSSProperties = {
-        ...(isMobile ? mobileTileStyle : {}),
-        "--locked-default-mask-image": `url("${button.defaultImageUrl}")`,
-        "--locked-hover-mask-image": `url("${button.hoverImageUrl}")`,
-      } as React.CSSProperties;
       const lockedClassName = [
         "group locked-choice",
-        `locked-choice--${LOCKED_EFFECT}`,
         "relative block select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400",
         isMobile ? layout.mobileHoverClass : null,
         isTapped ? "tapped" : null,
@@ -144,7 +137,7 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
             className={lockedClassName}
             onClick={(event) => event.preventDefault()}
             onTouchStart={handleLockedTouchStart}
-            style={lockedTileStyle}
+            style={isMobile ? mobileTileStyle : undefined}
           >
             {isMobile ? (
               <>
