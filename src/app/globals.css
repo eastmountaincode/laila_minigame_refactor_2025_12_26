@@ -130,21 +130,86 @@ body.dev-mode [data-bg-media] > * {
 .locked-choice {
   cursor: not-allowed;
   isolation: isolate;
+  overflow: hidden;
+  --locked-shimmer-color: rgba(255, 255, 255, 0.54);
+  --locked-shimmer-tint: rgba(255, 150, 224, 0.2);
 }
 
 .locked-choice img {
-  filter: blur(12px) brightness(1.3) contrast(0.42) saturate(0.5);
-  opacity: 0.9;
+  filter: blur(4px) brightness(1.08) contrast(0.78) saturate(0.74);
+  opacity: 0.82;
   transition:
     filter 220ms ease,
     opacity 220ms ease,
     transform 220ms ease;
+  animation: locked-choice-soft-pulse 2.8s ease-in-out infinite;
 }
 
 .locked-choice:hover img,
 .locked-choice.tapped img {
-  filter: blur(14px) brightness(1.4) contrast(0.46) saturate(0.54);
-  opacity: 0.95;
+  filter: blur(3px) brightness(1.16) contrast(0.84) saturate(0.8);
+  opacity: 0.9;
+}
+
+.locked-choice--glimmer::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 16%,
+    color-mix(in srgb, var(--locked-shimmer-tint), transparent 86%) 30%,
+    color-mix(in srgb, var(--locked-shimmer-color), transparent 84%) 38%,
+    color-mix(in srgb, var(--locked-shimmer-color), transparent 62%) 46%,
+    color-mix(in srgb, var(--locked-shimmer-color), transparent 40%) 50%,
+    color-mix(in srgb, var(--locked-shimmer-color), transparent 62%) 54%,
+    color-mix(in srgb, var(--locked-shimmer-color), transparent 84%) 62%,
+    color-mix(in srgb, var(--locked-shimmer-tint), transparent 86%) 70%,
+    transparent 84%,
+    transparent 100%
+  );
+  background-size: 260% 100%;
+  mix-blend-mode: screen;
+  opacity: 0.82;
+  animation: locked-choice-shimmer 3.2s ease-in-out infinite;
+  mask-image: var(--locked-default-mask-image);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  -webkit-mask-image: var(--locked-default-mask-image);
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+}
+
+.locked-choice--glimmer:hover::before,
+.locked-choice--glimmer.tapped::before {
+  mask-image: var(--locked-hover-mask-image);
+  -webkit-mask-image: var(--locked-hover-mask-image);
+}
+
+@keyframes locked-choice-shimmer {
+  0%,
+  18% {
+    background-position: 160% 0;
+  }
+  74%,
+  100% {
+    background-position: -160% 0;
+  }
+}
+
+@keyframes locked-choice-soft-pulse {
+  0%,
+  100% {
+    filter: blur(4px) brightness(1.08) contrast(0.78) saturate(0.74);
+  }
+  50% {
+    filter: blur(3px) brightness(1.16) contrast(0.84) saturate(0.8);
+  }
 }
 
 /* Exaggerated "cartoon Windows" treatment for the album popups. */
@@ -314,6 +379,15 @@ body.dev-mode [data-bg-media] > * {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .locked-choice img,
+  .locked-choice--glimmer::before {
+    animation: none;
+  }
+
+  .locked-choice--glimmer::before {
+    opacity: 0.24;
+  }
+
   .bargaining-wave-char {
     animation: none;
   }

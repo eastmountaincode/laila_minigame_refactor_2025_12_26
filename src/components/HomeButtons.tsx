@@ -71,7 +71,7 @@ interface HomeButtonsProps {
 }
 
 const BUTTON_ORDER = ["bargaining", "anger", "denial", "tender"];
-const LOCKED_CHOICES = new Set(["anger"]);
+const LOCKED_CHOICES = new Set(["anger", "tender"]);
 const LOCKED_EFFECT = "glimmer";
 
 export function HomeButtons({ buttons }: HomeButtonsProps) {
@@ -87,8 +87,8 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
   }, []);
 
   const orderedButtons = [...buttons].sort((a, b) => {
-    const aIndex = BUTTON_ORDER.indexOf(a.label?.toLowerCase());
-    const bIndex = BUTTON_ORDER.indexOf(b.label?.toLowerCase());
+    const aIndex = BUTTON_ORDER.indexOf(a.label?.trim().toLowerCase());
+    const bIndex = BUTTON_ORDER.indexOf(b.label?.trim().toLowerCase());
 
     if (aIndex === -1 && bIndex === -1) return 0;
     if (aIndex === -1) return 1;
@@ -97,7 +97,7 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
   });
 
   const renderButton = (button: ButtonData, isMobile: boolean) => {
-    const key = button.label?.toLowerCase();
+    const key = button.label?.trim().toLowerCase();
     const layout = BUTTON_LAYOUT[key];
     if (!layout) return null;
 
@@ -107,6 +107,11 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
 
     if (LOCKED_CHOICES.has(key)) {
       const isTapped = lockedPreviewKey === key;
+      const lockedTileStyle: React.CSSProperties = {
+        ...(isMobile ? mobileTileStyle : {}),
+        "--locked-default-mask-image": `url("${button.defaultImageUrl}")`,
+        "--locked-hover-mask-image": `url("${button.hoverImageUrl}")`,
+      } as React.CSSProperties;
       const lockedClassName = [
         "group locked-choice",
         `locked-choice--${LOCKED_EFFECT}`,
@@ -139,7 +144,7 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
             className={lockedClassName}
             onClick={(event) => event.preventDefault()}
             onTouchStart={handleLockedTouchStart}
-            style={isMobile ? mobileTileStyle : undefined}
+            style={lockedTileStyle}
           >
             {isMobile ? (
               <>

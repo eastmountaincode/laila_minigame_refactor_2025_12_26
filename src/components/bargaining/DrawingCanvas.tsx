@@ -236,6 +236,14 @@ export function DrawingCanvas() {
     handleDoubleClick();
   };
 
+  const handleThisIsMeClick = () => {
+    playClick();
+    window.setTimeout(() => {
+      setShowThisIsMe(false);
+      window.setTimeout(() => setShowNotGoodEnough(true), 2180);
+    }, 120);
+  };
+
   // Touch support
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
@@ -343,7 +351,7 @@ export function DrawingCanvas() {
       {showThisIsMe && !showNotGoodEnough && (
         <div className="bargaining-action-bar fixed bottom-[3%] left-1/2 -translate-x-1/2 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => { setShowThisIsMe(false); setTimeout(() => setShowNotGoodEnough(true), 2300); }}
+            onClick={handleThisIsMeClick}
             className="win95-btn bargaining-cartoon-btn cursor-pointer"
             style={{
               background: "silver",

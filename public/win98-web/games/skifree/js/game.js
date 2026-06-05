@@ -315,7 +315,7 @@ export default class Game {
 		try { new Audio('/assets/win95/chord.wav').play().catch(() => {}); } catch {}
 		showDialog({
 			title: 'BeFree',
-			text: 'Game over.',
+			text: 'You are free.',
 			modal: true,
 			buttons: [{
 				label: 'OK',
