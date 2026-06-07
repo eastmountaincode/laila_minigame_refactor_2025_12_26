@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>3D Pinball for Windows - Space Cadet</title>
+  <style>
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 11px;
+    }
+
+    #pinball-root {
+      --inner-pinball-menu-height: 17px;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #canvas {
+      display: block;
+      width: 100%;
+      height: calc(100% + var(--inner-pinball-menu-height));
+      margin-top: calc(-1 * var(--inner-pinball-menu-height));
+      border: 0;
+      background: #000;
+      outline: none;
+    }
+
+    #loading {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: #000;
+      color: #c0c0c0;
+      pointer-events: none;
+    }
+
+    #loading.is-hidden {
+      display: none;
+    }
+
+    #progress {
+      width: 220px;
+      margin-top: 8px;
+    }
+
+    #hand-tuner {
+      position: absolute;
+      inset: 0;
+      display: none;
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    #hand-tuner.is-visible {
+      display: block;
+    }
+
+    .hand-tuner-layer {
+      position: absolute;
+      box-sizing: border-box;
+      touch-action: none;
+      cursor: move;
+      outline: 1px solid rgba(255, 255, 255, 0.85);
+      transform-origin: center center;
+    }
+
+    .hand-tuner-layer img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .hand-tuner-layer.is-selected {
+      outline: 2px solid #ffe08a;
+    }
+
+    .ball-rest-target {
+      position: absolute;
+      box-sizing: border-box;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #ffe08a;
+      border-radius: 50%;
+      background: rgba(255, 224, 138, 0.2);
+      box-shadow: 0 0 0 1px #050505, 0 0 10px rgba(255, 224, 138, 0.8);
+      cursor: move;
+      touch-action: none;
+      transform: translate(-50%, -50%);
+    }
+
+    .ball-rest-target::before,
+    .ball-rest-target::after {
+      content: "";
+      position: absolute;
+      background: #ffe08a;
+    }
+
+    .ball-rest-target::before {
+      left: 50%;
+      top: -8px;
+      width: 2px;
+      height: 30px;
+      transform: translateX(-50%);
+    }
+
+    .ball-rest-target::after {
+      left: -8px;
+      top: 50%;
+      width: 30px;
+      height: 2px;
+      transform: translateY(-50%);
+    }
+
+    .danger-zone {
+      position: absolute;
+      box-sizing: border-box;
+      border: 2px solid rgba(255, 70, 70, 0.95);
+      background: rgba(255, 0, 0, 0.12);
+      box-shadow: 0 0 0 1px #050505, inset 0 0 14px rgba(255, 0, 0, 0.18);
+      cursor: move;
+      touch-action: none;
+    }
+
+    .danger-zone-label {
+      position: absolute;
+      left: 4px;
+      top: 3px;
+      color: #ffb8b8;
+      font: 10px Monaco, Consolas, monospace;
+      text-shadow: 1px 1px 0 #050505;
+      pointer-events: none;
+    }
+
+    .danger-zone.is-locked {
+      background: rgba(255, 0, 0, 0.06);
+      border-color: rgba(255, 70, 70, 0.65);
+    }
+
+    .hand-tuner-handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border: 1px solid #050505;
+      background: #ffe08a;
+    }
+
+    .hand-tuner-resize {
+      right: -6px;
+      bottom: -6px;
+      cursor: nwse-resize;
+    }
+
+    .hand-tuner-rotate {
+      right: -6px;
+      top: -18px;
+      border-radius: 50%;
+      cursor: grab;
+    }
+
+    #hand-tuner-panel {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: min(360px, calc(100% - 16px));
+      max-height: calc(100% - 16px);
+      overflow: auto;
+      border: 1px solid #808080;
+      border-top-color: #fff;
+      border-left-color: #fff;
+      background: #c0c0c0;
+      color: #050505;
+      box-shadow: 2px 2px 0 #050505;
+      font-size: 11px;
+      pointer-events: auto;
+    }
+
+    #hand-tuner-panel-title {
+      padding: 2px 6px;
+      background: #000080;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    #hand-tuner-panel-body {
+      display: grid;
+      gap: 5px;
+      padding: 6px;
+    }
+
+    #hand-tuner-values {
+      width: 100%;
+      height: 118px;
+      box-sizing: border-box;
+      resize: none;
+      border: 1px solid #808080;
+      border-top-color: #050505;
+      border-left-color: #050505;
+      background: #fff;
+      color: #050505;
+      font: 10px Monaco, Consolas, monospace;
+    }
+
+    .hand-tuner-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .hand-tuner-buttons button {
+      border: 1px solid #808080;
+      border-top-color: #fff;
+      border-left-color: #fff;
+      background: #c0c0c0;
+      color: #050505;
+      font: inherit;
+      padding: 2px 8px;
+    }
+
+    .hand-tuner-buttons button:active {
+      border-color: #fff;
+      border-top-color: #050505;
+      border-left-color: #050505;
+    }
+
+    .hand-tuner-buttons button.is-active {
+      background: #000080;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="pinball-root">
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    <div id="hand-tuner" aria-hidden="true"></div>
+    <div id="loading">
+      <div>
+        <div id="status">Downloading...</div>
+        <progress value="0" max="100" id="progress" hidden></progress>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const statusElement = document.getElementById("status");
+    const progressElement = document.getElementById("progress");
+    const loadingElement = document.getElementById("loading");
+    const canvasElement = document.getElementById("canvas");
+    const pinballRootElement = document.getElementById("pinball-root");
+    const handTunerElement = document.getElementById("hand-tuner");
+    const HAND_TUNER_STORAGE_KEY = "space-cadet-rescue-animation-tuner-v5";
+    const HAND_TUNER_BASE_WIDTH = 642;
+    const HAND_TUNER_BASE_HEIGHT = 525;
+    const PINBALL_RUNTIME_VERSION = "tender-rescue-20260607-7";
+    const PINBALL_RUNTIME_BASE_WIDTH = 600;
+    const PINBALL_RUNTIME_BASE_HEIGHT = 416;
+    const HAND_TUNER_ASSET = "/assets/pinball-hands/hand_rescue_2.png";
+    const HAND_TUNER_START_ASSET = "/assets/pinball-hands/hand_flipper.png";
+    const HAND_TUNER_FRAME_3_ASSET = "/assets/pinball-hands/hand_rescue_3.png";
+    const HAND_TUNER_FRAME_4_ASSET = "/assets/pinball-hands/hand_rescue_4.png";
+    const HAND_TUNER_HOLD_LEFT_1_ASSET = "/assets/pinball-hands/hand_hold_left_1.png";
+    const HAND_TUNER_HOLD_RIGHT_1_ASSET = "/assets/pinball-hands/hand_hold_right_1.png";
+    const HAND_TUNER_HOLD_LEFT_2_ASSET = "/assets/pinball-hands/hand_hold_left_2.png";
+    const HAND_TUNER_HOLD_RIGHT_2_ASSET = "/assets/pinball-hands/hand_hold_right_2.png";
+    const HAND_TUNER_FRAME_MS = 300;
+    const handTunerFrameOrder = ["frame1", "frame2", "frame3", "frame4", "frame5", "frame6"];
+
+    const handTunerFrames = {
+      frame1: {
+        label: "Frame 1",
+        asset: HAND_TUNER_START_ASSET,
+        transform: "mirrored-pair",
+      },
+      frame2: {
+        label: "Frame 2",
+        asset: HAND_TUNER_ASSET,
+        transform: "mirrored-pair",
+      },
+      frame3: {
+        label: "Frame 3",
+        asset: HAND_TUNER_FRAME_3_ASSET,
+        transform: "mirrored-pair",
+      },
+      frame4: {
+        label: "Frame 4",
+        asset: HAND_TUNER_FRAME_4_ASSET,
+        transform: "mirrored-pair",
+      },
+      frame5: {
+        label: "Frame 5",
+        assets: {
+          left: HAND_TUNER_HOLD_LEFT_1_ASSET,
+          right: HAND_TUNER_HOLD_RIGHT_1_ASSET,
+        },
+        transform: "split",
+      },
+      frame6: {
+        label: "Frame 6",
+        assets: {
+          left: HAND_TUNER_HOLD_LEFT_2_ASSET,
+          right: HAND_TUNER_HOLD_RIGHT_2_ASSET,
+        },
+        transform: "split",
+      },
+    };
+
+    const defaultHandTunerState = {
+      frame1: {
+        left: { x: 160, y: 449, width: 48, height: 26, rotation: 17 },
+        right: { x: 329, y: 449, width: 48, height: 26, rotation: -17 },
+      },
+      frame2: {
+        left: { x: 146, y: 459, width: 44, height: 37, rotation: 24 },
+        right: { x: 204, y: 461, width: 39, height: 33, rotation: -24 },
+      },
+      frame3: {
+        left: { x: 154, y: 421, width: 43, height: 49, rotation: 58 },
+        right: { x: 220, y: 423, width: 43, height: 49, rotation: -58 },
+      },
+      frame4: {
+        left: { x: 166, y: 384, width: 42, height: 52, rotation: 86 },
+        right: { x: 217, y: 386, width: 42, height: 52, rotation: -86 },
+      },
+      frame5: {
+        left: { x: 158, y: 332, width: 58, height: 80, rotation: 180 },
+        right: { x: 207, y: 333, width: 61, height: 80, rotation: 180 },
+      },
+      frame6: {
+        left: { x: 158, y: 324, width: 58, height: 81, rotation: 180 },
+        right: { x: 203, y: 325, width: 68, height: 80, rotation: 180 },
+      },
+      ballRest: { x: 214, y: 380 },
+      dangerZone: { x: 130, y: 355, width: 285, height: 140 },
+    };
+
+    let handTunerState = loadHandTunerState();
+    let handTunerActiveFrame = "frame2";
+    let handTunerVisible = false;
+    let handTunerSelectedSide = "left";
+    let handTunerInteraction = null;
+    let handTunerPlayStartedAt = 0;
+    let handTunerAnimationFrame = null;
+    let handTunerDangerEditable = false;
+    let handTunerRuntimePreviewActive = false;
+
+    function loadHandTunerState() {
+      try {
+        const stored = window.localStorage.getItem(HAND_TUNER_STORAGE_KEY);
+        if (!stored) return JSON.parse(JSON.stringify(defaultHandTunerState));
+        const storedState = JSON.parse(stored);
+        const nextState = JSON.parse(JSON.stringify(defaultHandTunerState));
+        handTunerFrameOrder.forEach((frameId) => {
+          nextState[frameId] = {
+            ...nextState[frameId],
+            ...storedState[frameId],
+          };
+        });
+        nextState.ballRest = {
+          ...nextState.ballRest,
+          ...storedState.ballRest,
+        };
+        nextState.dangerZone = {
+          ...nextState.dangerZone,
+          ...storedState.dangerZone,
+        };
+        return nextState;
+      } catch {
+        return JSON.parse(JSON.stringify(defaultHandTunerState));
+      }
+    }
+
+    function saveHandTunerState() {
+      window.localStorage.setItem(
+        HAND_TUNER_STORAGE_KEY,
+        JSON.stringify(handTunerState)
+      );
+      updateTenderRescueConfig();
+    }
+
+    function updateTenderRescueConfig() {
+      const scaleX = PINBALL_RUNTIME_BASE_WIDTH / HAND_TUNER_BASE_WIDTH;
+      const scaleY = PINBALL_RUNTIME_BASE_HEIGHT / HAND_TUNER_BASE_HEIGHT;
+      const scaleFrame = (frame) =>
+        Object.fromEntries(
+          Object.entries(frame).map(([side, hand]) => [
+            side,
+            {
+              x: hand.x * scaleX,
+              y: hand.y * scaleY,
+              width: hand.width * scaleX,
+              height: hand.height * scaleY,
+              rotation: hand.rotation,
+            },
+          ])
+        );
+      const config = {
+        meta: {
+          frameMs: HAND_TUNER_FRAME_MS,
+        },
+        frames: Object.fromEntries(
+          handTunerFrameOrder.map((frameId) => [frameId, scaleFrame(handTunerState[frameId])])
+        ),
+        ballRest: {
+          x: handTunerState.ballRest.x * scaleX,
+          y: handTunerState.ballRest.y * scaleY,
+        },
+        dangerZone: {
+          x: handTunerState.dangerZone.x * scaleX,
+          y: handTunerState.dangerZone.y * scaleY,
+          width: handTunerState.dangerZone.width * scaleX,
+          height: handTunerState.dangerZone.height * scaleY,
+        },
+      };
+      window.tenderRescueConfig = config;
+      if (typeof Module !== "undefined") Module.tenderRescueConfig = config;
+    }
+
+    function handTunerPlaybackFrameId() {
+      if (!handTunerPlayStartedAt) return handTunerActiveFrame;
+      const elapsed = Date.now() - handTunerPlayStartedAt;
+      const frameIndex = Math.min(
+        handTunerFrameOrder.length - 1,
+        Math.floor(elapsed / HAND_TUNER_FRAME_MS)
+      );
+      return handTunerFrameOrder[frameIndex];
+    }
+
+    function handTunerPlaybackComplete() {
+      if (!handTunerPlayStartedAt) return true;
+      return Date.now() - handTunerPlayStartedAt >= handTunerFrameOrder.length * HAND_TUNER_FRAME_MS;
+    }
+
+    function handTunerCanvasRect() {
+      const rootRect = pinballRootElement.getBoundingClientRect();
+      const canvasRect = canvasElement.getBoundingClientRect();
+      return {
+        left: canvasRect.left - rootRect.left,
+        top: canvasRect.top - rootRect.top,
+        width: canvasRect.width,
+        height: canvasRect.height,
+      };
+    }
+
+    function handTunerLayerStyle(hand) {
+      const rect = handTunerCanvasRect();
+      return {
+        left: `${rect.left + (hand.x / HAND_TUNER_BASE_WIDTH) * rect.width}px`,
+        top: `${rect.top + (hand.y / HAND_TUNER_BASE_HEIGHT) * rect.height}px`,
+        width: `${(hand.width / HAND_TUNER_BASE_WIDTH) * rect.width}px`,
+        height: `${(hand.height / HAND_TUNER_BASE_HEIGHT) * rect.height}px`,
+      };
+    }
+
+    function ballRestTargetStyle() {
+      const rect = handTunerCanvasRect();
+      return {
+        left: `${rect.left + (handTunerState.ballRest.x / HAND_TUNER_BASE_WIDTH) * rect.width}px`,
+        top: `${rect.top + (handTunerState.ballRest.y / HAND_TUNER_BASE_HEIGHT) * rect.height}px`,
+      };
+    }
+
+    function dangerZoneStyle() {
+      const rect = handTunerCanvasRect();
+      const dangerZone = handTunerState.dangerZone;
+      return {
+        left: `${rect.left + (dangerZone.x / HAND_TUNER_BASE_WIDTH) * rect.width}px`,
+        top: `${rect.top + (dangerZone.y / HAND_TUNER_BASE_HEIGHT) * rect.height}px`,
+        width: `${(dangerZone.width / HAND_TUNER_BASE_WIDTH) * rect.width}px`,
+        height: `${(dangerZone.height / HAND_TUNER_BASE_HEIGHT) * rect.height}px`,
+      };
+    }
+
+    function handTunerPoint(event) {
+      const rect = handTunerCanvasRect();
+      const rootRect = pinballRootElement.getBoundingClientRect();
+      return {
+        x: ((event.clientX - rootRect.left - rect.left) / rect.width) * HAND_TUNER_BASE_WIDTH,
+        y: ((event.clientY - rootRect.top - rect.top) / rect.height) * HAND_TUNER_BASE_HEIGHT,
+      };
+    }
+
+    function currentHandTunerFrameState() {
+      return handTunerState[handTunerActiveFrame];
+    }
+
+    function getHandTunerAsset(frame, side) {
+      return frame.assets ? frame.assets[side] : frame.asset;
+    }
+
+    function getHandTunerImageTransform(frame, side) {
+      if (frame.transform === "split") return "";
+      return side === "right" ? "scaleX(-1) scaleY(-1)" : "scaleY(-1)";
+    }
+
+    function renderHandTunerLayer({ side, hand, frame, opacity, selectable }) {
+      const layer = document.createElement("div");
+      const layerStyle = handTunerLayerStyle(hand);
+      layer.className =
+        "hand-tuner-layer" +
+        (selectable && side === handTunerSelectedSide ? " is-selected" : "");
+      layer.dataset.side = side;
+      layer.style.left = layerStyle.left;
+      layer.style.top = layerStyle.top;
+      layer.style.width = layerStyle.width;
+      layer.style.height = layerStyle.height;
+      layer.style.transform = `rotate(${hand.rotation}deg)`;
+      layer.style.opacity = opacity;
+      if (!selectable) layer.style.pointerEvents = "none";
+
+      const image = document.createElement("img");
+      image.src = getHandTunerAsset(frame, side);
+      image.alt = `${side} rescue hand`;
+      image.draggable = false;
+      image.style.transform = getHandTunerImageTransform(frame, side);
+
+      layer.appendChild(image);
+
+      if (selectable) {
+        const resizeHandle = document.createElement("button");
+        resizeHandle.type = "button";
+        resizeHandle.className = "hand-tuner-handle hand-tuner-resize";
+        resizeHandle.setAttribute("aria-label", `Resize ${side} hand`);
+        resizeHandle.dataset.mode = "resize";
+
+        const rotateHandle = document.createElement("button");
+        rotateHandle.type = "button";
+        rotateHandle.className = "hand-tuner-handle hand-tuner-rotate";
+        rotateHandle.setAttribute("aria-label", `Rotate ${side} hand`);
+        rotateHandle.dataset.mode = "rotate";
+
+        layer.appendChild(resizeHandle);
+        layer.appendChild(rotateHandle);
+      }
+
+      handTunerElement.appendChild(layer);
+    }
+
+    function renderBallRestTarget({ selectable }) {
+      const target = document.createElement("div");
+      const targetStyle = ballRestTargetStyle();
+      target.className = "ball-rest-target";
+      target.dataset.target = "ball-rest";
+      target.style.left = targetStyle.left;
+      target.style.top = targetStyle.top;
+      if (!selectable) target.style.pointerEvents = "none";
+      target.setAttribute("aria-label", "Ball resting place");
+      handTunerElement.appendChild(target);
+    }
+
+    function renderDangerZone({ selectable }) {
+      const zone = document.createElement("div");
+      const zoneStyle = dangerZoneStyle();
+      zone.className = `danger-zone${selectable ? "" : " is-locked"}`;
+      zone.dataset.target = "danger-zone";
+      zone.style.left = zoneStyle.left;
+      zone.style.top = zoneStyle.top;
+      zone.style.width = zoneStyle.width;
+      zone.style.height = zoneStyle.height;
+      if (!selectable) zone.style.pointerEvents = "none";
+
+      const label = document.createElement("div");
+      label.className = "danger-zone-label";
+      label.textContent = "danger";
+
+      const resizeHandle = document.createElement("button");
+      resizeHandle.type = "button";
+      resizeHandle.className = "hand-tuner-handle hand-tuner-resize";
+      resizeHandle.dataset.mode = "resize";
+      resizeHandle.setAttribute("aria-label", "Resize danger zone");
+
+      zone.appendChild(label);
+      zone.appendChild(resizeHandle);
+      handTunerElement.appendChild(zone);
+    }
+
+    function renderHandTuner() {
+      const isPlaying = handTunerPlayStartedAt > 0;
+      const isRuntimePreview = handTunerRuntimePreviewActive;
+      handTunerElement.innerHTML = "";
+
+      const frameId = isPlaying ? handTunerPlaybackFrameId() : handTunerActiveFrame;
+      const frame = handTunerFrames[frameId];
+      renderDangerZone({ selectable: handTunerDangerEditable && !isPlaying && !isRuntimePreview });
+      if (!isRuntimePreview) {
+        Object.entries(handTunerState[frameId]).forEach(([side, hand]) => {
+          renderHandTunerLayer({
+            side,
+            hand,
+            frame,
+            opacity: 1,
+            selectable: !isPlaying,
+          });
+        });
+      }
+      renderBallRestTarget({ selectable: !isPlaying && !isRuntimePreview });
+
+      const panel = document.createElement("div");
+      panel.id = "hand-tuner-panel";
+      panel.innerHTML = `
+        <div id="hand-tuner-panel-title">Hand Animation Tuner</div>
+        <div id="hand-tuner-panel-body">
+          <div>Switch frames, tune hands, drag/resize danger, drag ball target, then Copy for Codex.</div>
+          <div class="hand-tuner-buttons">
+            ${handTunerFrameOrder
+              .map(
+                (frameId) =>
+                  `<button type="button" data-frame="${frameId}" class="${handTunerActiveFrame === frameId ? "is-active" : ""}">${handTunerFrames[frameId].label}</button>`
+              )
+              .join("")}
+          </div>
+          <textarea id="hand-tuner-values" readonly></textarea>
+          <div class="hand-tuner-buttons">
+            <button type="button" data-action="play">Play Tuned</button>
+            <button type="button" data-action="test-cradle" class="${isRuntimePreview ? "is-active" : ""}">${isRuntimePreview ? "Exit Test" : "Test Cradle"}</button>
+            <button type="button" data-action="toggle-danger" class="${handTunerDangerEditable ? "is-active" : ""}">${handTunerDangerEditable ? "Lock Danger" : "Edit Danger"}</button>
+            <button type="button" data-action="copy">Copy Values</button>
+            <button type="button" data-action="reset">Reset Frame</button>
+          </div>
+        </div>
+      `;
+      handTunerElement.appendChild(panel);
+      updateHandTunerValues();
+    }
+
+    function updateHandTunerValues() {
+      const values = document.getElementById("hand-tuner-values");
+      if (!values) return;
+      values.value = JSON.stringify(handTunerState, null, 2);
+    }
+
+    function setHandTunerVisible(visible) {
+      handTunerVisible = visible;
+      handTunerElement.classList.toggle("is-visible", visible);
+      handTunerElement.setAttribute("aria-hidden", visible ? "false" : "true");
+      if (visible) renderHandTuner();
+    }
+
+    function startHandTunerInteraction(event, mode, side) {
+      const point = handTunerPoint(event);
+      const hand = currentHandTunerFrameState()[side];
+      const center = {
+        x: hand.x + hand.width / 2,
+        y: hand.y + hand.height / 2,
+      };
+      handTunerSelectedSide = side;
+      handTunerInteraction = {
+        mode,
+        frame: handTunerActiveFrame,
+        side,
+        startPoint: point,
+        startHand: { ...hand },
+        startRotation: hand.rotation,
+        startAngle: Math.atan2(point.y - center.y, point.x - center.x) * 180 / Math.PI,
+      };
+      setHandTunerVisible(true);
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    function startBallRestInteraction(event) {
+      const point = handTunerPoint(event);
+      handTunerInteraction = {
+        mode: "ball-rest",
+        startPoint: point,
+        startBallRest: { ...handTunerState.ballRest },
+      };
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    function startDangerZoneInteraction(event, mode) {
+      const point = handTunerPoint(event);
+      handTunerInteraction = {
+        mode: mode === "resize" ? "danger-resize" : "danger-move",
+        startPoint: point,
+        startDangerZone: { ...handTunerState.dangerZone },
+      };
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    function playHandTunerAnimation() {
+      handTunerRuntimePreviewActive = false;
+      handTunerPlayStartedAt = Date.now();
+      if (handTunerAnimationFrame) cancelAnimationFrame(handTunerAnimationFrame);
+
+      function tick() {
+        renderHandTuner();
+        if (!handTunerPlaybackComplete()) {
+          handTunerAnimationFrame = requestAnimationFrame(tick);
+          return;
+        }
+
+        handTunerPlayStartedAt = 0;
+        handTunerAnimationFrame = null;
+        renderHandTuner();
+      }
+
+      tick();
+    }
+
+    function testRuntimeCradleAnimation() {
+      if (handTunerRuntimePreviewActive) {
+        handTunerRuntimePreviewActive = false;
+        if (typeof Module !== "undefined") {
+          Module.tenderRescuePreviewClearRequest = (Module.tenderRescuePreviewClearRequest || 0) + 1;
+        }
+        renderHandTuner();
+        return;
+      }
+
+      updateTenderRescueConfig();
+      handTunerPlayStartedAt = 0;
+      if (handTunerAnimationFrame) cancelAnimationFrame(handTunerAnimationFrame);
+      handTunerAnimationFrame = null;
+
+      handTunerRuntimePreviewActive = true;
+      if (typeof Module !== "undefined") {
+        Module.tenderRescuePreviewRequest = (Module.tenderRescuePreviewRequest || 0) + 1;
+      }
+      renderHandTuner();
+    }
+
+    function moveHandTunerInteraction(event) {
+      if (!handTunerInteraction) return;
+      const point = handTunerPoint(event);
+      const interaction = handTunerInteraction;
+
+      if (interaction.mode === "ball-rest") {
+        handTunerState.ballRest = {
+          x: Math.round(interaction.startBallRest.x + point.x - interaction.startPoint.x),
+          y: Math.round(interaction.startBallRest.y + point.y - interaction.startPoint.y),
+        };
+        saveHandTunerState();
+        renderHandTuner();
+        event.preventDefault();
+        return;
+      }
+
+      if (interaction.mode === "danger-move") {
+        handTunerState.dangerZone = {
+          ...interaction.startDangerZone,
+          x: Math.round(interaction.startDangerZone.x + point.x - interaction.startPoint.x),
+          y: Math.round(interaction.startDangerZone.y + point.y - interaction.startPoint.y),
+        };
+        saveHandTunerState();
+        renderHandTuner();
+        event.preventDefault();
+        return;
+      }
+
+      if (interaction.mode === "danger-resize") {
+        handTunerState.dangerZone = {
+          ...interaction.startDangerZone,
+          width: Math.max(20, Math.round(interaction.startDangerZone.width + point.x - interaction.startPoint.x)),
+          height: Math.max(20, Math.round(interaction.startDangerZone.height + point.y - interaction.startPoint.y)),
+        };
+        saveHandTunerState();
+        renderHandTuner();
+        event.preventDefault();
+        return;
+      }
+
+      const nextHand = { ...interaction.startHand };
+
+      if (interaction.mode === "move") {
+        nextHand.x = Math.round(interaction.startHand.x + point.x - interaction.startPoint.x);
+        nextHand.y = Math.round(interaction.startHand.y + point.y - interaction.startPoint.y);
+      }
+
+      if (interaction.mode === "resize") {
+        const deltaX = point.x - interaction.startPoint.x;
+        const deltaY = point.y - interaction.startPoint.y;
+        const aspectRatio = interaction.startHand.width / interaction.startHand.height;
+        const widthFromDrag = interaction.startHand.width + deltaX;
+        const heightFromDrag = interaction.startHand.height + deltaY;
+        nextHand.width = Math.max(
+          12,
+          Math.round(Math.abs(deltaX) > Math.abs(deltaY) ? widthFromDrag : heightFromDrag * aspectRatio)
+        );
+        nextHand.height = Math.round(nextHand.width / aspectRatio);
+      }
+
+      if (interaction.mode === "rotate") {
+        const center = {
+          x: interaction.startHand.x + interaction.startHand.width / 2,
+          y: interaction.startHand.y + interaction.startHand.height / 2,
+        };
+        const angle = Math.atan2(point.y - center.y, point.x - center.x) * 180 / Math.PI;
+        nextHand.rotation = Math.round(interaction.startRotation + angle - interaction.startAngle);
+      }
+
+      handTunerState[interaction.frame][interaction.side] = nextHand;
+      saveHandTunerState();
+      renderHandTuner();
+      event.preventDefault();
+    }
+
+    handTunerElement.addEventListener("pointerdown", (event) => {
+      const frameButton = event.target.closest("[data-frame]");
+      if (frameButton) {
+        handTunerActiveFrame = frameButton.dataset.frame;
+        handTunerRuntimePreviewActive = false;
+        handTunerPlayStartedAt = 0;
+        if (handTunerAnimationFrame) cancelAnimationFrame(handTunerAnimationFrame);
+        handTunerAnimationFrame = null;
+        renderHandTuner();
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      const panelAction = event.target.closest("[data-action]");
+      if (panelAction) {
+        const action = panelAction.dataset.action;
+        if (action === "play") playHandTunerAnimation();
+        if (action === "test-cradle") testRuntimeCradleAnimation();
+        if (action === "toggle-danger") {
+          handTunerDangerEditable = !handTunerDangerEditable;
+          renderHandTuner();
+        }
+        if (action === "copy") navigator.clipboard?.writeText(JSON.stringify(handTunerState, null, 2));
+        if (action === "reset") {
+          handTunerState[handTunerActiveFrame] = JSON.parse(JSON.stringify(defaultHandTunerState[handTunerActiveFrame]));
+          saveHandTunerState();
+          renderHandTuner();
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      const layer = event.target.closest(".hand-tuner-layer");
+      const ballTarget = event.target.closest("[data-target='ball-rest']");
+      const dangerZone = event.target.closest("[data-target='danger-zone']");
+      if (dangerZone) {
+        startDangerZoneInteraction(event, event.target.dataset.mode || "move");
+        return;
+      }
+
+      if (ballTarget) {
+        startBallRestInteraction(event);
+        return;
+      }
+
+      if (!layer) return;
+      const side = layer.dataset.side;
+      const mode = event.target.dataset.mode || "move";
+      startHandTunerInteraction(event, mode, side);
+    });
+
+    window.addEventListener("pointermove", moveHandTunerInteraction);
+    window.addEventListener("pointerup", () => {
+      handTunerInteraction = null;
+    });
+    window.addEventListener("resize", () => {
+      if (handTunerVisible) renderHandTuner();
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key.toLowerCase() !== "t") return;
+      setHandTunerVisible(!handTunerVisible);
+      event.preventDefault();
+    });
+
+    updateTenderRescueConfig();
+
+    function hideLoading() {
+      loadingElement.classList.add("is-hidden");
+      canvasElement.focus();
+    }
+
+    var Module = {
+      preRun: [],
+      postRun: [hideLoading],
+      locateFile: function (path) {
+        return "/win98-web/games/pinball/" + path + "?v=" + PINBALL_RUNTIME_VERSION;
+      },
+      print: function (text) {
+        console.log(Array.prototype.slice.call(arguments).join(" "));
+      },
+      printErr: function (text) {
+        console.error(Array.prototype.slice.call(arguments).join(" "));
+      },
+      canvas: canvasElement,
+      setStatus: function (text) {
+        if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: "" };
+        if (text === Module.setStatus.last.text) return;
+
+        const match = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+        const now = Date.now();
+        if (match && now - Module.setStatus.last.time < 30) return;
+
+        Module.setStatus.last.time = now;
+        Module.setStatus.last.text = text;
+
+        if (match) {
+          statusElement.textContent = match[1].trim();
+          progressElement.value = parseInt(match[2], 10) * 100;
+          progressElement.max = parseInt(match[4], 10) * 100;
+          progressElement.hidden = false;
+          return;
+        }
+
+        statusElement.textContent = text;
+        progressElement.hidden = true;
+        if (!text || text === "All downloads complete.") hideLoading();
+      },
+      totalDependencies: 0,
+      tenderRescueConfig: window.tenderRescueConfig,
+      tenderRescuePreviewRequest: 0,
+      tenderRescuePreviewClearRequest: 0,
+      monitorRunDependencies: function (left) {
+        this.totalDependencies = Math.max(this.totalDependencies, left);
+        Module.setStatus(
+          left
+            ? "Preparing... (" + (this.totalDependencies - left) + "/" + this.totalDependencies + ")"
+            : "All downloads complete."
+        );
+      },
+    };
+
+    Module.setStatus("Downloading...");
+
+    window.onerror = function () {
+      Module.setStatus("Exception thrown, see JavaScript console");
+      Module.setStatus = function (text) {
+        if (text) Module.printErr("[post-exception status] " + text);
+      };
+    };
+  </script>
+  <script>
+    const pinballRuntimeScript = document.createElement("script");
+    pinballRuntimeScript.async = true;
+    pinballRuntimeScript.src = "/win98-web/games/pinball/SpaceCadetPinball.js?v=" + PINBALL_RUNTIME_VERSION;
+    document.body.appendChild(pinballRuntimeScript);
+  </script>
+</body>
+</html>
