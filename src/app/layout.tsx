@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { DevModeProvider } from "@/components/DevModeProvider";
 
@@ -16,6 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <DevModeProvider>{children}</DevModeProvider>
+        <Analytics />
       </body>
     </html>
   );
