@@ -71,7 +71,7 @@ interface HomeButtonsProps {
 }
 
 const BUTTON_ORDER = ["bargaining", "anger", "denial", "tender"];
-const LOCKED_CHOICES = new Set(["anger"]);
+const LOCKED_CHOICES = new Set(["anger", "tender"]);
 
 export function HomeButtons({ buttons }: HomeButtonsProps) {
   const [tenderOpen, setTenderOpen] = useState(false);
