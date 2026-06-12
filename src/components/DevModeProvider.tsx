@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-// Set to false for production - disables dev mode entirely
-const ENABLE_DEV_MODE = true;
+// Keep dev-mode plumbing available in code, but do not enable the runtime toggle.
+const ENABLE_DEV_MODE = false;
 
 const DevModeContext = createContext(false);
 
