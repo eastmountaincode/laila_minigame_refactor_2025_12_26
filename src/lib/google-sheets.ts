@@ -32,9 +32,10 @@ export async function appendRow(spreadsheetId: string, range: string, values: st
   const firstEmptyRow = (data?.length ?? 0) + 1;
 
   // Write to the specific row
+  const endColumn = String.fromCharCode("A".charCodeAt(0) + values.length - 1);
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `Sheet1!A${firstEmptyRow}:B${firstEmptyRow}`,
+    range: `Sheet1!A${firstEmptyRow}:${endColumn}${firstEmptyRow}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [values] },
   });
@@ -46,6 +47,18 @@ export async function emailExists(spreadsheetId: string, email: string): Promise
 
   const normalizedEmail = email.toLowerCase().trim();
   return data.some(row => row[0]?.toLowerCase().trim() === normalizedEmail);
+}
+
+export async function emailPathwayExists(spreadsheetId: string, email: string, pathway: string): Promise<boolean> {
+  const data = await getSheetData(spreadsheetId, 'Sheet1!A:B');
+  if (!data) return false;
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedPathway = pathway.toLowerCase().trim();
+  return data.some(row =>
+    row[0]?.toLowerCase().trim() === normalizedEmail &&
+    row[1]?.toLowerCase().trim() === normalizedPathway
+  );
 }
 
 export async function deleteEmail(spreadsheetId: string, email: string): Promise<boolean> {

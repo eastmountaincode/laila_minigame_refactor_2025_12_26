@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { appendRow, emailExists } from "@/lib/google-sheets";
+import { appendRow, emailPathwayExists } from "@/lib/google-sheets";
+import { isPathway } from "@/lib/pathways";
 
 const SPREADSHEET_ID = process.env.GOOGLE_EMAILS_SPREADSHEET_ID!;
 
@@ -8,7 +9,7 @@ const devModeEmails = new Set<string>();
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { email, pathway } = await request.json();
 
     if (!email || typeof email !== "string") {
       return NextResponse.json(
@@ -26,29 +27,40 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!isPathway(pathway)) {
+      return NextResponse.json(
+        { error: "Valid pathway is required" },
+        { status: 400 }
+      );
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const subscriptionKey = `${normalizedEmail}:${pathway}`;
+    let alreadySubscribed = false;
+
     // If Google Sheets is not configured, use in-memory store (for development)
     if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_EMAILS_SPREADSHEET_ID) {
-      const normalizedEmail = email.toLowerCase().trim();
-      if (devModeEmails.has(normalizedEmail)) {
-        return NextResponse.json({ success: true, message: "Already subscribed" });
+      if (devModeEmails.has(subscriptionKey)) {
+        alreadySubscribed = true;
+      } else {
+        devModeEmails.add(subscriptionKey);
+        console.log("Email subscription (dev mode):", normalizedEmail, pathway);
       }
-      devModeEmails.add(normalizedEmail);
-      console.log("📧 Email subscription (dev mode):", email);
-      return NextResponse.json({ success: true });
+    } else {
+      // Check if this email already exists for this pathway.
+      alreadySubscribed = await emailPathwayExists(SPREADSHEET_ID, normalizedEmail, pathway);
+
+      if (!alreadySubscribed) {
+        // Append email, pathway, and timestamp.
+        const timestamp = new Date().toISOString();
+        await appendRow(SPREADSHEET_ID, "Sheet1!A:C", [normalizedEmail, pathway, timestamp]);
+      }
     }
 
-    // Check if email already exists
-    const exists = await emailExists(SPREADSHEET_ID, email);
-    if (exists) {
-      // Still return success - user doesn't need to know they were already subscribed
-      return NextResponse.json({ success: true, message: "Already subscribed" });
-    }
-
-    // Append email to Google Sheet with timestamp
-    const timestamp = new Date().toISOString();
-    await appendRow(SPREADSHEET_ID, "Sheet1!A:B", [email, timestamp]);
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: alreadySubscribed ? "Already subscribed" : undefined,
+    });
   } catch (error) {
     console.error("Subscription error:", error);
     return NextResponse.json(
