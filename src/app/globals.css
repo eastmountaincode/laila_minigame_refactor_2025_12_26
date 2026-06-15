@@ -118,7 +118,7 @@ body:has(.home-viewport) {
 
 .home-mobile-choice-layout {
   padding-top: 12vh;
-  padding-bottom: 12vh;
+  padding-bottom: 11vh;
 }
 
 .home-mobile-choice-pair {
@@ -128,7 +128,7 @@ body:has(.home-viewport) {
 @supports (padding: max(0px)) {
   .home-mobile-choice-layout {
     padding-top: max(12vh, calc(env(safe-area-inset-top) + 56px));
-    padding-bottom: max(12vh, calc(env(safe-area-inset-bottom) + 132px));
+    padding-bottom: max(11vh, calc(env(safe-area-inset-bottom) + 124px));
   }
 }
 
