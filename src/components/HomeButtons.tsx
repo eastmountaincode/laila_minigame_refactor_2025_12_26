@@ -362,14 +362,14 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
         {desktopButtons.map((button) => renderButton(button, false))}
       </div>
 
-      {/* Mobile layout: 2x2 centered grid */}
+      {/* Mobile layout: top pair / bottom pair */}
       <div className="home-mobile-choice-layout flex h-full flex-col items-center justify-between md:hidden">
-        <div className="flex flex-col items-center gap-12">
+        <div className="home-mobile-choice-pair flex flex-col items-center">
           {mobileButtons
             .slice(0, 2)
             .map((button) => renderButton(button, true))}
         </div>
-        <div className="flex flex-col items-center gap-12">
+        <div className="home-mobile-choice-pair flex flex-col items-center">
           {mobileButtons
             .slice(2, 4)
             .map((button) => renderButton(button, true))}
