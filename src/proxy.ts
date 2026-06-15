@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ANGER_ACCESS_COOKIE, getAngerAccessToken } from "@/lib/anger-access";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const password = process.env.ANGER_ACCESS_PASSWORD;
   const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
   const passwordUrl = new URL("/anger-password", request.url);
