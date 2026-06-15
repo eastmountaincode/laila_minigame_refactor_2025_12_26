@@ -117,14 +117,14 @@ body:has(.home-viewport) {
 }
 
 .home-mobile-choice-layout {
-  padding-top: 8vh;
-  padding-bottom: 8vh;
+  padding-top: 12vh;
+  padding-bottom: 14vh;
 }
 
 @supports (padding: max(0px)) {
   .home-mobile-choice-layout {
-    padding-top: max(8vh, calc(env(safe-area-inset-top) + 24px));
-    padding-bottom: max(8vh, calc(env(safe-area-inset-bottom) + 120px));
+    padding-top: max(12vh, calc(env(safe-area-inset-top) + 56px));
+    padding-bottom: max(14vh, calc(env(safe-area-inset-bottom) + 150px));
   }
 }
 
