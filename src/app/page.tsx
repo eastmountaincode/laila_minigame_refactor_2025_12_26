@@ -22,7 +22,9 @@ type HomepageData = {
       url?: string;
     };
   };
-  backgroundImage?: SanityImage;
+  backgroundImageSquare?: SanityImage;
+  backgroundImageDesktop?: SanityImage;
+  backgroundImageMobile?: SanityImage;
 };
 
 type ChoiceButton = {
@@ -32,6 +34,15 @@ type ChoiceButton = {
   defaultImage?: SanityImage;
   hoverImage?: SanityImage;
 };
+
+function buildHomepageImageUrl(
+  image: SanityImage | undefined,
+  width: number,
+): string | undefined {
+  if (!image) return undefined;
+
+  return urlFor(image).width(width).fit("max").auto("format").quality(82).url();
+}
 
 export default async function Home() {
   const cookieStore = await cookies();
@@ -48,17 +59,20 @@ export default async function Home() {
   });
 
   const mediaType = data?.backgroundMediaType ?? "video";
+  const backgroundImageSources =
+    mediaType === "image"
+      ? {
+          mobile: buildHomepageImageUrl(data?.backgroundImageMobile, 1600),
+          square: buildHomepageImageUrl(data?.backgroundImageSquare, 2200),
+          desktop: buildHomepageImageUrl(data?.backgroundImageDesktop, 2400),
+        }
+      : undefined;
   const mediaUrl =
     mediaType === "video"
       ? data?.backgroundVideo?.asset?.url
-      : data?.backgroundImage
-        ? urlFor(data.backgroundImage)
-            .width(2200)
-            .fit("max")
-            .auto("format")
-            .quality(82)
-            .url()
-        : undefined;
+      : backgroundImageSources?.square ??
+        backgroundImageSources?.mobile ??
+        backgroundImageSources?.desktop;
 
   const buttonData = buttons.map((button) => ({
     _id: button._id,
@@ -70,7 +84,9 @@ export default async function Home() {
     hoverImageAlt: button.hoverImage?.alt ?? "",
   }));
   const preloadAssets = [
-    mediaType === "image" ? mediaUrl : undefined,
+    mediaType === "image" ? backgroundImageSources?.mobile : undefined,
+    mediaType === "image" ? backgroundImageSources?.square : undefined,
+    mediaType === "image" ? backgroundImageSources?.desktop : undefined,
     ...buttonData.flatMap((button) => [
       button.defaultImageUrl,
       button.hoverImageUrl,
@@ -90,7 +106,8 @@ export default async function Home() {
             type={mediaType}
             src={mediaUrl}
             {...(mediaType === "image" && {
-              alt: data?.backgroundImage?.alt ?? "",
+              alt: data?.backgroundImageSquare?.alt ?? "",
+              sources: backgroundImageSources,
             })}
           />
         )}

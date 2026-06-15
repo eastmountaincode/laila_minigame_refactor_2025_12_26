@@ -9,7 +9,21 @@ export const HOMEPAGE_QUERY = defineQuery(/* groq */ `
         url
       }
     },
-    backgroundImage {
+    "backgroundImageSquare": backgroundImage {
+      asset->{
+        _id,
+        url
+      },
+      alt
+    },
+    backgroundImageDesktop {
+      asset->{
+        _id,
+        url
+      },
+      alt
+    },
+    backgroundImageMobile {
       asset->{
         _id,
         url

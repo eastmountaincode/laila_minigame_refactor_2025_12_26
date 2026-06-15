@@ -1,6 +1,6 @@
 export const HOME_ASSETS_LOADED_COOKIE = "laila_home_assets_loaded";
 export const HOME_ASSETS_LOADED_STORAGE_KEY = "laila-home-assets-loaded";
-export const HOME_ASSETS_LOADED_VALUE = "v2-credits-preload";
+export const HOME_ASSETS_LOADED_VALUE = "v3-responsive-backgrounds";
 
 export const CREDITS_BACKGROUND_IMAGE = "/images/post-it-note.png";
 export const LYLIA_IMAGE = "/images/laila_face_pic_hands.png";
