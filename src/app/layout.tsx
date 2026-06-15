@@ -4,8 +4,8 @@ import "./globals.css";
 import { DevModeProvider } from "@/components/DevModeProvider";
 
 export const metadata: Metadata = {
-  title: "Something Dreadful's Gonna Happen",
-  description: "Refactor of the original Webflow site.",
+  title: "Something Dreadful Is Going to Happen",
+  description: "Something Dreadful Is Going to Happen",
 };
 
 export default function RootLayout({
