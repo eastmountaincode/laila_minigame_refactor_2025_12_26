@@ -134,7 +134,7 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
             x
           </button>
 
-          <div className="absolute inset-[5%_9%_4%_8%] rotate-[-10deg] overflow-auto px-3 py-5 text-[#1f120f] sm:inset-[10%_11%_7%_10%] sm:px-4 sm:py-5 md:inset-[7%_9%_8%_8%]">
+          <div className="absolute inset-[5%_9%_7%_8%] rotate-[-10deg] overflow-auto px-3 py-5 text-[#1f120f] sm:inset-[10%_11%_7%_10%] sm:px-4 sm:py-5 md:inset-[7%_9%_8%_8%]">
             <div className="space-y-2 md:space-y-3">
               <div className="flex flex-col items-start gap-1 pr-12">
                 <Image
