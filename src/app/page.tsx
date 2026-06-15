@@ -1,25 +1,48 @@
 import { BackgroundMedia } from "@/components/BackgroundMedia";
 import { HomeLoadingGate } from "@/components/HomeLoadingGate";
 import { HomeButtons } from "@/components/HomeButtons";
+import { cookies } from "next/headers";
 import { sanityFetch } from "@/sanity/lib/fetch";
 import { HOMEPAGE_QUERY, CHOICE_BUTTONS_QUERY } from "@/sanity/lib/queries";
 import { urlFor } from "@/sanity/lib/image";
+import {
+  HOME_ASSETS_LOADED_COOKIE,
+  HOME_ASSETS_LOADED_VALUE,
+  HOME_STATIC_PRELOAD_ASSETS,
+} from "@/lib/home-assets";
 
-const HOMEPAGE_PRELOAD_ASSETS = [
-  "/images/post-it-note.png",
-  "/images/laila_face_pic_hands.png",
-  "/images/laila-smith-text-for-credits.png",
-  "/assets/win95/info_icon.png",
-  "/assets/win95/warning_icon.png",
-  "/assets/win95/dialog_icon.png",
-];
+type SanityImage = {
+  alt?: string;
+} & Record<string, unknown>;
+
+type HomepageData = {
+  backgroundMediaType?: "image" | "video";
+  backgroundVideo?: {
+    asset?: {
+      url?: string;
+    };
+  };
+  backgroundImage?: SanityImage;
+};
+
+type ChoiceButton = {
+  _id: string;
+  label: string;
+  href: string;
+  defaultImage?: SanityImage;
+  hoverImage?: SanityImage;
+};
 
 export default async function Home() {
-  const data = await sanityFetch<any>({
+  const cookieStore = await cookies();
+  const initiallyLoaded =
+    cookieStore.get(HOME_ASSETS_LOADED_COOKIE)?.value ===
+    HOME_ASSETS_LOADED_VALUE;
+  const data = await sanityFetch<HomepageData | null>({
     query: HOMEPAGE_QUERY,
     tags: ["homepage"],
   });
-  const buttons = await sanityFetch<any>({
+  const buttons = await sanityFetch<ChoiceButton[]>({
     query: CHOICE_BUTTONS_QUERY,
     tags: ["choiceButton"],
   });
@@ -37,27 +60,30 @@ export default async function Home() {
             .url()
         : undefined;
 
-  const buttonData = buttons.map((button: any) => ({
+  const buttonData = buttons.map((button) => ({
     _id: button._id,
     label: button.label,
     href: button.href,
-    defaultImageUrl: urlFor(button.defaultImage).url(),
+    defaultImageUrl: button.defaultImage ? urlFor(button.defaultImage).url() : "",
     defaultImageAlt: button.defaultImage?.alt ?? "",
-    hoverImageUrl: urlFor(button.hoverImage).url(),
+    hoverImageUrl: button.hoverImage ? urlFor(button.hoverImage).url() : "",
     hoverImageAlt: button.hoverImage?.alt ?? "",
   }));
   const preloadAssets = [
     mediaType === "image" ? mediaUrl : undefined,
-    ...buttonData.flatMap((button: any) => [
+    ...buttonData.flatMap((button) => [
       button.defaultImageUrl,
       button.hoverImageUrl,
     ]),
-    ...HOMEPAGE_PRELOAD_ASSETS,
+    ...HOME_STATIC_PRELOAD_ASSETS,
   ].filter((asset): asset is string => Boolean(asset));
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-black text-white">
-      <HomeLoadingGate assets={preloadAssets}>
+      <HomeLoadingGate
+        assets={preloadAssets}
+        initiallyLoaded={initiallyLoaded}
+      >
         {mediaUrl && (
           <BackgroundMedia
             className="z-0"

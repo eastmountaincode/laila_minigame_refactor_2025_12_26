@@ -1,40 +1,61 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import Image from "next/image";
+import {
+  HOME_ASSETS_LOADED_COOKIE,
+  HOME_ASSETS_LOADED_STORAGE_KEY,
+  HOME_ASSETS_LOADED_VALUE,
+} from "@/lib/home-assets";
 
 const LOADER_SRC = "/assets/loaders/catscape-loader.gif";
 const MAX_LOADING_MS = 15000;
-const HOME_ASSETS_LOADED_KEY = "laila-home-assets-loaded";
 
 type HomeLoadingGateProps = {
   assets: string[];
+  initiallyLoaded?: boolean;
   children: ReactNode;
 };
 
 function preloadImage(src: string) {
   return new Promise<void>((resolve) => {
+    let isDone = false;
     const image = new window.Image();
-    const finish = () => resolve();
-    const timeout = window.setTimeout(finish, MAX_LOADING_MS);
+
+    function finish() {
+      if (isDone) return;
+      isDone = true;
+      window.clearTimeout(timeout);
+      resolve();
+    }
 
     image.onload = () => {
-      window.clearTimeout(timeout);
-      finish();
+      const decode = image.decode
+        ? image.decode().catch(() => undefined)
+        : Promise.resolve();
+      decode.finally(finish);
     };
-    image.onerror = () => {
-      window.clearTimeout(timeout);
-      finish();
-    };
+    image.onerror = finish;
     image.decoding = "async";
+    const timeout = window.setTimeout(finish, MAX_LOADING_MS);
     image.src = src;
   });
 }
 
-export function HomeLoadingGate({ assets, children }: HomeLoadingGateProps) {
-  const [isLoaded, setIsLoaded] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.sessionStorage.getItem(HOME_ASSETS_LOADED_KEY) === "true";
-  });
+function rememberHomeAssetsLoaded() {
+  window.sessionStorage.setItem(
+    HOME_ASSETS_LOADED_STORAGE_KEY,
+    HOME_ASSETS_LOADED_VALUE,
+  );
+  document.cookie = `${HOME_ASSETS_LOADED_COOKIE}=${HOME_ASSETS_LOADED_VALUE}; path=/; max-age=2592000; SameSite=Lax`;
+}
+
+export function HomeLoadingGate({
+  assets,
+  initiallyLoaded = false,
+  children,
+}: HomeLoadingGateProps) {
+  const [isLoaded, setIsLoaded] = useState(initiallyLoaded);
   const preloadAssets = useMemo(
     () => Array.from(new Set([LOADER_SRC, ...assets].filter(Boolean))),
     [assets],
@@ -42,11 +63,23 @@ export function HomeLoadingGate({ assets, children }: HomeLoadingGateProps) {
 
   useEffect(() => {
     let isMounted = true;
+    const wasAlreadyLoaded =
+      initiallyLoaded ||
+      window.sessionStorage.getItem(HOME_ASSETS_LOADED_STORAGE_KEY) ===
+        HOME_ASSETS_LOADED_VALUE;
+
+    if (wasAlreadyLoaded) {
+      queueMicrotask(() => {
+        if (isMounted) {
+          setIsLoaded(true);
+        }
+      });
+    }
 
     async function preloadAssetsForPage() {
       await Promise.allSettled(preloadAssets.map(preloadImage));
       if (!isMounted) return;
-      window.sessionStorage.setItem(HOME_ASSETS_LOADED_KEY, "true");
+      rememberHomeAssetsLoaded();
       setIsLoaded(true);
     }
 
@@ -55,7 +88,7 @@ export function HomeLoadingGate({ assets, children }: HomeLoadingGateProps) {
     return () => {
       isMounted = false;
     };
-  }, [preloadAssets]);
+  }, [initiallyLoaded, preloadAssets]);
 
   return (
     <>
@@ -78,11 +111,13 @@ export function HomeLoadingGate({ assets, children }: HomeLoadingGateProps) {
         ].join(" ")}
       >
         <div className="flex flex-col items-center gap-3">
-          <img
+          <Image
             src={LOADER_SRC}
             alt=""
             width={120}
             height={120}
+            priority
+            unoptimized
             className="h-[120px] w-[120px]"
             style={{ imageRendering: "pixelated" }}
           />

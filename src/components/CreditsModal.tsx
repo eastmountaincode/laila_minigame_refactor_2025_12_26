@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, type MouseEvent } from "react";
 import Image from "next/image";
 import { sounds } from "@/lib/sounds";
-
-const CREDITS_BACKGROUND_IMAGE = "/images/post-it-note.png";
-const LYLIA_IMAGE = "/images/laila_face_pic_hands.png";
-const LAILA_NAME_IMAGE = "/images/laila-smith-text-for-credits.png";
+import {
+  CREDITS_BACKGROUND_IMAGE,
+  LAILA_NAME_IMAGE,
+  LYLIA_IMAGE,
+} from "@/lib/home-assets";
 const REGULAR_EXPRESSION_URL = "https://www.andrew-boylan.com/";
 const LAILA_SMITH_URL = "https://linktr.ee/lailasmith_";
 
