@@ -19,7 +19,7 @@ type CreditLine =
 
 const CREDIT_SECTIONS = [
   {
-    title: "Something Dreadful's Gonna Happen",
+    title: "Something Dreadful Is Going to Happen",
     lines: [
       {
         prefix: "Created by",
