@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type CSSProperties } from "react";
 import Image from "next/image";
 import { ChoiceTile } from "@/components/ChoiceTile";
 import { CreditsModal } from "@/components/CreditsModal";
@@ -70,8 +70,34 @@ interface HomeButtonsProps {
   buttons: ButtonData[];
 }
 
-const BUTTON_ORDER = ["bargaining", "anger", "denial", "tender"];
+const DESKTOP_BUTTON_ORDER = ["bargaining", "anger", "denial", "tender"];
+const MOBILE_BUTTON_ORDER = ["denial", "bargaining", "anger", "tender"];
 const LOCKED_CHOICES = new Set(["anger", "tender"]);
+const MOBILE_SCALE_SOURCE_WIDTH = 482;
+const MOBILE_SCALE_VIEWPORT_WIDTH = 86;
+const MOBILE_MIN_SCALE = 0.34;
+const MOBILE_MAX_SCALE = 0.62;
+const MOBILE_IMAGE_BASE_CLASS =
+  "absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 object-contain";
+
+function mobileScaledSize(value: number) {
+  return `clamp(${Math.round(value * MOBILE_MIN_SCALE)}px, ${(
+    (value * MOBILE_SCALE_VIEWPORT_WIDTH) /
+    MOBILE_SCALE_SOURCE_WIDTH
+  ).toFixed(3)}vw, ${Math.round(value * MOBILE_MAX_SCALE)}px)`;
+}
+
+function sortButtons(buttons: ButtonData[], order: string[]) {
+  return [...buttons].sort((a, b) => {
+    const aIndex = order.indexOf(a.label?.trim().toLowerCase());
+    const bIndex = order.indexOf(b.label?.trim().toLowerCase());
+
+    if (aIndex === -1 && bIndex === -1) return 0;
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
+}
 
 export function HomeButtons({ buttons }: HomeButtonsProps) {
   const [tenderOpen, setTenderOpen] = useState(false);
@@ -85,23 +111,17 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
     setCreditsOpen(true);
   }, []);
 
-  const orderedButtons = [...buttons].sort((a, b) => {
-    const aIndex = BUTTON_ORDER.indexOf(a.label?.trim().toLowerCase());
-    const bIndex = BUTTON_ORDER.indexOf(b.label?.trim().toLowerCase());
-
-    if (aIndex === -1 && bIndex === -1) return 0;
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
-  });
+  const desktopButtons = sortButtons(buttons, DESKTOP_BUTTON_ORDER);
+  const mobileButtons = sortButtons(buttons, MOBILE_BUTTON_ORDER);
 
   const renderButton = (button: ButtonData, isMobile: boolean) => {
     const key = button.label?.trim().toLowerCase();
     const layout = BUTTON_LAYOUT[key];
     if (!layout) return null;
 
-    const mobileTileStyle = {
-      aspectRatio: `${layout.desktopWidth} / ${layout.desktopHeight}`,
+    const mobileTileStyle: CSSProperties = {
+      width: mobileScaledSize(layout.desktopWidth),
+      height: mobileScaledSize(layout.desktopHeight),
     };
 
     if (LOCKED_CHOICES.has(key)) {
@@ -109,7 +129,6 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
       const lockedClassName = [
         "group locked-choice",
         "relative block select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400",
-        isMobile ? layout.mobileHoverClass : null,
         isTapped ? "tapped" : null,
       ]
         .filter(Boolean)
@@ -145,16 +164,16 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
                   src={button.defaultImageUrl}
                   alt={button.defaultImageAlt}
                   className={[
-                    "absolute left-1/2 top-1/2 h-auto -translate-x-1/2 -translate-y-1/2 group-hover:hidden group-[.tapped]:hidden",
-                    layout.mobileClass,
+                    MOBILE_IMAGE_BASE_CLASS,
+                    "group-hover:hidden group-[.tapped]:hidden",
                   ].join(" ")}
                 />
                 <img
                   src={button.hoverImageUrl}
                   alt={button.hoverImageAlt}
                   className={[
-                    "absolute left-1/2 top-1/2 hidden h-auto -translate-x-1/2 -translate-y-1/2 group-hover:block group-[.tapped]:block",
-                    layout.mobileHoverClass,
+                    MOBILE_IMAGE_BASE_CLASS,
+                    "hidden group-hover:block group-[.tapped]:block",
                   ].join(" ")}
                 />
               </>
@@ -198,7 +217,6 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
             onClick={() => setTenderOpen(true)}
             className={[
               "group relative block cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400",
-              isMobile ? layout.mobileHoverClass : null,
             ]
               .filter(Boolean)
               .join(" ")}
@@ -210,16 +228,16 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
                   src={button.defaultImageUrl}
                   alt={button.defaultImageAlt}
                   className={[
-                    "absolute left-1/2 top-1/2 h-auto -translate-x-1/2 -translate-y-1/2 group-hover:hidden",
-                    layout.mobileClass,
+                    MOBILE_IMAGE_BASE_CLASS,
+                    "group-hover:hidden",
                   ].join(" ")}
                 />
                 <img
                   src={button.hoverImageUrl}
                   alt={button.hoverImageAlt}
                   className={[
-                    "absolute left-1/2 top-1/2 hidden h-auto -translate-x-1/2 -translate-y-1/2 group-hover:block",
-                    layout.mobileHoverClass,
+                    MOBILE_IMAGE_BASE_CLASS,
+                    "hidden group-hover:block",
                   ].join(" ")}
                 />
               </>
@@ -257,23 +275,23 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
           <ChoiceTile
             href={button.href}
             ariaLabel={button.label}
-            className={["group", layout.mobileHoverClass].join(" ")}
+            className="group"
             style={mobileTileStyle}
           >
             <img
               src={button.defaultImageUrl}
               alt={button.defaultImageAlt}
               className={[
-                "absolute left-1/2 top-1/2 h-auto -translate-x-1/2 -translate-y-1/2 group-hover:hidden group-[.tapped]:hidden",
-                layout.mobileClass,
+                MOBILE_IMAGE_BASE_CLASS,
+                "group-hover:hidden group-[.tapped]:hidden",
               ].join(" ")}
             />
             <img
               src={button.hoverImageUrl}
               alt={button.hoverImageAlt}
               className={[
-                "absolute left-1/2 top-1/2 hidden h-auto -translate-x-1/2 -translate-y-1/2 group-hover:block group-[.tapped]:block",
-                layout.mobileHoverClass,
+                MOBILE_IMAGE_BASE_CLASS,
+                "hidden group-hover:block group-[.tapped]:block",
               ].join(" ")}
             />
           </ChoiceTile>
@@ -320,18 +338,18 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
     <>
       {/* Desktop layout */}
       <div className="hidden h-full md:grid md:grid-cols-2 md:grid-rows-2">
-        {orderedButtons.map((button) => renderButton(button, false))}
+        {desktopButtons.map((button) => renderButton(button, false))}
       </div>
 
       {/* Mobile layout: 2x2 centered grid */}
       <div className="flex h-full flex-col items-center justify-between py-[8vh] md:hidden">
         <div className="flex flex-col items-center gap-12">
-          {orderedButtons
+          {mobileButtons
             .slice(0, 2)
             .map((button) => renderButton(button, true))}
         </div>
         <div className="flex flex-col items-center gap-12">
-          {orderedButtons
+          {mobileButtons
             .slice(2, 4)
             .map((button) => renderButton(button, true))}
         </div>

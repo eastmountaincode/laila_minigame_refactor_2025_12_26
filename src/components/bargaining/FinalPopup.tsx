@@ -279,6 +279,9 @@ export function FinalPopup() {
                     No
                   </button>
                 </div>
+                <div style={{ color: "#666", fontSize: 13, lineHeight: 1.2, margin: "8px auto 0", textAlign: "center" }}>
+                  By submitting your email, you agree to receive emails from me now and again. You may unsubscribe whenever you wish.
+                </div>
               </form>
 
               {status === "error" && (

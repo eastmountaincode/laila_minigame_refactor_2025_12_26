@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     const normalizedEmail = email.toLowerCase().trim();
     const subscriptionKey = `${normalizedEmail}:${pathway}`;
     let alreadySubscribed = false;
+    let delivery: "sheet" | "smtp" = "sheet";
 
     // If Google Sheets is not configured, use in-memory store (for development)
     if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_EMAILS_SPREADSHEET_ID) {
@@ -61,12 +62,14 @@ export async function POST(request: Request) {
 
     if (EMAIL_DELIVERY_MODE === "smtp") {
       await sendPathwaySongEmail(normalizedEmail, pathway);
+      delivery = "smtp";
     } else if (EMAIL_DELIVERY_MODE !== "sheet") {
       throw new Error(`Unsupported EMAIL_DELIVERY_MODE: ${EMAIL_DELIVERY_MODE}`);
     }
 
     return NextResponse.json({
       success: true,
+      delivery,
       message: alreadySubscribed ? "Already subscribed" : undefined,
     });
   } catch (error) {

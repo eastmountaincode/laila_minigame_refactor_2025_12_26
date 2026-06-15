@@ -8,7 +8,7 @@ const CREDITS_BACKGROUND_IMAGE = "/images/post-it-note.png";
 const LYLIA_IMAGE = "/images/laila_face_pic_hands.png";
 const LAILA_NAME_IMAGE = "/images/laila-smith-text-for-credits.png";
 const REGULAR_EXPRESSION_URL = "https://www.andrew-boylan.com/";
-const LAILA_SMITH_URL = "https://lailasmith.com";
+const LAILA_SMITH_URL = "https://linktr.ee/lailasmith_";
 
 type CreditLine =
   | string
