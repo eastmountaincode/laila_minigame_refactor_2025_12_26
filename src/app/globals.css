@@ -76,13 +76,43 @@
 
 html,
 body {
+  min-height: 100%;
   overscroll-behavior: none;
+}
+
+html {
+  background: #000;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+.home-viewport {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.home-viewport-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+@supports (height: 100lvh) {
+  .home-viewport,
+  .home-viewport-layer {
+    height: 100lvh;
+  }
 }
 
 /* Dev mode - toggle with 'B' key */
@@ -134,7 +164,7 @@ body.dev-mode [data-bg-media] > * {
 }
 
 .locked-choice img {
-  filter: blur(4px) brightness(1.08) contrast(0.78) saturate(0.74);
+  filter: blur(4.5px) brightness(1.08) contrast(0.78) saturate(0.74);
   opacity: 0.82;
   transition:
     filter 220ms ease,
@@ -145,17 +175,17 @@ body.dev-mode [data-bg-media] > * {
 
 .locked-choice:hover img,
 .locked-choice.tapped img {
-  filter: blur(3px) brightness(1.16) contrast(0.84) saturate(0.8);
+  filter: blur(3.5px) brightness(1.16) contrast(0.84) saturate(0.8);
   opacity: 0.9;
 }
 
 @keyframes locked-choice-soft-pulse {
   0%,
   100% {
-    filter: blur(4px) brightness(1.08) contrast(0.78) saturate(0.74);
+    filter: blur(4.5px) brightness(1.08) contrast(0.78) saturate(0.74);
   }
   50% {
-    filter: blur(3px) brightness(1.16) contrast(0.84) saturate(0.8);
+    filter: blur(3.5px) brightness(1.16) contrast(0.84) saturate(0.8);
   }
 }
 

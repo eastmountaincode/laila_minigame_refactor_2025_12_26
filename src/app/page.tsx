@@ -95,7 +95,7 @@ export default async function Home() {
   ].filter((asset): asset is string => Boolean(asset));
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-black text-white">
+    <main className="home-viewport bg-black text-white">
       <HomeLoadingGate
         assets={preloadAssets}
         initiallyLoaded={initiallyLoaded}
@@ -112,7 +112,7 @@ export default async function Home() {
           />
         )}
 
-        <div className="pointer-events-none fixed inset-0 z-10 bg-black/15" />
+        <div className="pointer-events-none home-viewport-layer z-10 bg-black/15" />
 
         {/* "PICK ONE" centered text */}
         <div className="fixed inset-0 z-20 grid place-items-center">

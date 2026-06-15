@@ -20,7 +20,7 @@ export function BackgroundMedia(props: BackgroundMediaProps) {
   return (
     <div
       data-bg-media
-      className={["fixed inset-0 z-0", props.className]
+      className={["home-viewport-layer z-0", props.className]
         .filter(Boolean)
         .join(" ")}
     >
@@ -41,13 +41,13 @@ export function BackgroundMedia(props: BackgroundMediaProps) {
         <picture className="block h-full w-full">
           {props.sources.mobile ? (
             <source
-              media="(max-width: 699px), (max-aspect-ratio: 3/4)"
+              media="(max-aspect-ratio: 4/5)"
               srcSet={props.sources.mobile}
             />
           ) : null}
           {props.sources.desktop ? (
             <source
-              media="(min-width: 1100px) and (min-aspect-ratio: 4/3)"
+              media="(min-aspect-ratio: 5/4)"
               srcSet={props.sources.desktop}
             />
           ) : null}
