@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 const LOADER_SRC = "/assets/loaders/catscape-loader.gif";
 const MAX_LOADING_MS = 15000;
+const HOME_ASSETS_LOADED_KEY = "laila-home-assets-loaded";
 
 type HomeLoadingGateProps = {
   assets: string[];
@@ -30,7 +31,10 @@ function preloadImage(src: string) {
 }
 
 export function HomeLoadingGate({ assets, children }: HomeLoadingGateProps) {
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem(HOME_ASSETS_LOADED_KEY) === "true";
+  });
   const preloadAssets = useMemo(
     () => Array.from(new Set([LOADER_SRC, ...assets].filter(Boolean))),
     [assets],
@@ -41,7 +45,9 @@ export function HomeLoadingGate({ assets, children }: HomeLoadingGateProps) {
 
     async function preloadAssetsForPage() {
       await Promise.allSettled(preloadAssets.map(preloadImage));
-      if (isMounted) setIsLoaded(true);
+      if (!isMounted) return;
+      window.sessionStorage.setItem(HOME_ASSETS_LOADED_KEY, "true");
+      setIsLoaded(true);
     }
 
     preloadAssetsForPage();
