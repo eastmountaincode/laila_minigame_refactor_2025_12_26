@@ -328,7 +328,11 @@ export function FinalPopup() {
       </div>
 
       {/* Home icon */}
-      <Link href="/" className="fixed bottom-6 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center">
+      <Link
+        href="/"
+        onClick={playClick}
+        className="fixed bottom-6 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center"
+      >
         <Image
           src="/assets/webflow/images/home_gif.gif"
           alt="Home"

@@ -29,6 +29,9 @@ export function BackgroundMedia(props: BackgroundMediaProps) {
           className="h-full w-full object-contain md:scale-125 md:-translate-y-[5%]"
           src={props.src}
           alt={props.alt ?? ""}
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
         />
       )}
     </div>
