@@ -106,7 +106,7 @@ export function HomeLoadingGate({
         aria-busy={!isLoaded}
         aria-live="polite"
         className={[
-          "fixed inset-0 z-[100] grid place-items-center bg-black text-white transition-opacity duration-300",
+          "home-viewport-layer z-[100] grid place-items-center bg-black text-white transition-opacity duration-300",
           isLoaded ? "pointer-events-none opacity-0" : "opacity-100",
         ].join(" ")}
       >

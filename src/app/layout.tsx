@@ -3,16 +3,42 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { DevModeProvider } from "@/components/DevModeProvider";
 
+const siteTitle = "Something Dreadful Is Going to Happen";
+const siteDescription = "Something Dreadful Is Going to Happen";
+const siteUrl = "https://lailasmith.com";
+const ogImage = "/og-image.jpg";
+
 export const metadata: Metadata = {
-  title: "Something Dreadful Is Going to Happen",
-  description: "Something Dreadful Is Going to Happen",
+  metadataBase: new URL(siteUrl),
+  title: siteTitle,
+  description: siteDescription,
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    url: siteUrl,
+    siteName: siteTitle,
+    images: [
+      {
+        url: ogImage,
+        width: 1200,
+        height: 630,
+        alt: siteTitle,
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: [ogImage],
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#000000",
 };
 
 export default function RootLayout({

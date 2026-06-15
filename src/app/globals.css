@@ -91,27 +91,40 @@ body {
 }
 
 .home-viewport {
-  position: fixed;
-  top: 0;
-  left: 0;
+  position: relative;
+  min-height: 100vh;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
 }
 
 .home-viewport-layer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  width: 100vw;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
 }
 
 @supports (height: 100lvh) {
-  .home-viewport,
-  .home-viewport-layer {
+  .home-viewport {
+    min-height: 100lvh;
     height: 100lvh;
+  }
+}
+
+body:has(.home-viewport) {
+  overflow: hidden;
+  background: #000;
+}
+
+.home-mobile-choice-layout {
+  padding-top: 8vh;
+  padding-bottom: 8vh;
+}
+
+@supports (padding: max(0px)) {
+  .home-mobile-choice-layout {
+    padding-top: max(8vh, calc(env(safe-area-inset-top) + 24px));
+    padding-bottom: max(8vh, calc(env(safe-area-inset-bottom) + 120px));
   }
 }
 

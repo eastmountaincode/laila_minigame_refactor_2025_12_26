@@ -115,14 +115,14 @@ export default async function Home() {
         <div className="pointer-events-none home-viewport-layer z-10 bg-black/15" />
 
         {/* "PICK ONE" centered text */}
-        <div className="fixed inset-0 z-20 grid place-items-center">
+        <div className="home-viewport-layer z-20 grid place-items-center">
           <div className="font-[Pixeltimesnewroman,_ui-sans-serif] text-center text-[clamp(36px,8vw,60px)] leading-none tracking-wide text-[#ff002e] drop-shadow-[0_3px_0_rgba(0,0,0,0.71)]">
             PICK&nbsp;ONE
           </div>
         </div>
 
         {/* Desktop: corners | Mobile: centered column */}
-        <div className="pointer-events-none fixed inset-0 z-30 p-[clamp(12px,3vw,36px)]">
+        <div className="pointer-events-none home-viewport-layer z-30 p-[clamp(12px,3vw,36px)]">
           <HomeButtons buttons={buttonData} />
         </div>
       </HomeLoadingGate>

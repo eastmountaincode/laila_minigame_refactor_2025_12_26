@@ -363,7 +363,7 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
       </div>
 
       {/* Mobile layout: 2x2 centered grid */}
-      <div className="flex h-full flex-col items-center justify-between py-[8vh] md:hidden">
+      <div className="home-mobile-choice-layout flex h-full flex-col items-center justify-between md:hidden">
         <div className="flex flex-col items-center gap-12">
           {mobileButtons
             .slice(0, 2)
