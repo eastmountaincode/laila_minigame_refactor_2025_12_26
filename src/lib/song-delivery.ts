@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import type { Pathway } from "@/lib/pathways";
 
 type SongDelivery = {
@@ -32,24 +32,41 @@ const SONGS_BY_PATHWAY: Record<Pathway, SongDelivery> = {
   },
 };
 
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is not configured`);
+  }
+  return value;
+}
+
+function smtpSecure() {
+  return process.env.SMTP_SECURE !== "false";
+}
+
+function smtpPassword() {
+  return requiredEnv("SMTP_PASSWORD").replace(/\s+/g, "");
+}
+
 export async function sendPathwaySongEmail(email: string, pathway: Pathway) {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not configured");
-  }
-
-  if (!process.env.RESEND_FROM_EMAIL) {
-    throw new Error("RESEND_FROM_EMAIL is not configured");
-  }
-
   const song = SONGS_BY_PATHWAY[pathway];
-  const resend = new Resend(process.env.RESEND_API_KEY);
   const filePath = path.join(process.cwd(), "private", "email-songs", song.filename);
   const attachment = await readFile(filePath);
 
-  const { data, error } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL,
-    to: [email],
-    replyTo: process.env.RESEND_REPLY_TO,
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST ?? "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT ?? 465),
+    secure: smtpSecure(),
+    auth: {
+      user: requiredEnv("SMTP_USER"),
+      pass: smtpPassword(),
+    },
+  });
+
+  return transporter.sendMail({
+    from: requiredEnv("SMTP_FROM_EMAIL"),
+    to: email,
+    replyTo: process.env.SMTP_REPLY_TO,
     subject: "Your song from Something Dreadful's Gonna Happen",
     html: `
       <div>
@@ -62,13 +79,8 @@ export async function sendPathwaySongEmail(email: string, pathway: Pathway) {
       {
         filename: song.attachmentName,
         content: attachment,
+        contentType: "audio/mpeg",
       },
     ],
   });
-
-  if (error) {
-    throw new Error(`Resend failed: ${error.message}`);
-  }
-
-  return data;
 }

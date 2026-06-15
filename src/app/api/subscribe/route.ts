@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { appendRow, emailPathwayExists } from "@/lib/google-sheets";
 import { isPathway } from "@/lib/pathways";
+import { sendPathwaySongEmail } from "@/lib/song-delivery";
 
 const SPREADSHEET_ID = process.env.GOOGLE_EMAILS_SPREADSHEET_ID!;
+const EMAIL_DELIVERY_MODE = process.env.EMAIL_DELIVERY_MODE ?? "sheet";
 
 // In-memory store for dev mode (resets on server restart)
 const devModeEmails = new Set<string>();
@@ -55,6 +57,12 @@ export async function POST(request: Request) {
         const timestamp = new Date().toISOString();
         await appendRow(SPREADSHEET_ID, "Sheet1!A:C", [normalizedEmail, pathway, timestamp]);
       }
+    }
+
+    if (EMAIL_DELIVERY_MODE === "smtp") {
+      await sendPathwaySongEmail(normalizedEmail, pathway);
+    } else if (EMAIL_DELIVERY_MODE !== "sheet") {
+      throw new Error(`Unsupported EMAIL_DELIVERY_MODE: ${EMAIL_DELIVERY_MODE}`);
     }
 
     return NextResponse.json({
