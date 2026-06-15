@@ -16,6 +16,7 @@ const BUTTON_LAYOUT: Record<
     mobilePosition: string;
     mobileClass: string;
     mobileHoverClass: string;
+    mobileHoverWidthScale?: number;
     desktopHoverImageClass?: string;
   }
 > = {
@@ -35,6 +36,7 @@ const BUTTON_LAYOUT: Record<
     mobilePosition: "pointer-events-auto flex items-start justify-end",
     mobileClass: "h-auto w-[56vw] max-w-[300px]",
     mobileHoverClass: "h-auto w-[64vw] max-w-[340px]",
+    mobileHoverWidthScale: 1,
     desktopHoverImageClass: "-translate-y-12",
   },
   anger: {
@@ -77,8 +79,9 @@ const MOBILE_SCALE_SOURCE_WIDTH = 482;
 const MOBILE_SCALE_VIEWPORT_WIDTH = 86;
 const MOBILE_MIN_SCALE = 0.34;
 const MOBILE_MAX_SCALE = 0.62;
-const MOBILE_IMAGE_BASE_CLASS =
-  "absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 object-contain";
+const MOBILE_IMAGE_POSITION_CLASS =
+  "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2";
+const MOBILE_IMAGE_BASE_CLASS = `${MOBILE_IMAGE_POSITION_CLASS} h-full w-full object-contain`;
 
 function mobileScaledSize(value: number) {
   return `clamp(${Math.round(value * MOBILE_MIN_SCALE)}px, ${(
@@ -97,6 +100,15 @@ function sortButtons(buttons: ButtonData[], order: string[]) {
     if (bIndex === -1) return -1;
     return aIndex - bIndex;
   });
+}
+
+function getMobileHoverImageStyle(
+  widthScale?: number
+): CSSProperties | undefined {
+  if (!widthScale) return undefined;
+  return {
+    width: `${widthScale * 100}%`,
+  };
 }
 
 export function HomeButtons({ buttons }: HomeButtonsProps) {
@@ -123,6 +135,12 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
       width: mobileScaledSize(layout.desktopWidth),
       height: mobileScaledSize(layout.desktopHeight),
     };
+    const mobileHoverImageClass = layout.mobileHoverWidthScale
+      ? `${MOBILE_IMAGE_POSITION_CLASS} h-auto max-w-none`
+      : MOBILE_IMAGE_BASE_CLASS;
+    const mobileHoverImageStyle = getMobileHoverImageStyle(
+      layout.mobileHoverWidthScale
+    );
 
     if (LOCKED_CHOICES.has(key)) {
       const isTapped = lockedPreviewKey === key;
@@ -172,9 +190,10 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
                   src={button.hoverImageUrl}
                   alt={button.hoverImageAlt}
                   className={[
-                    MOBILE_IMAGE_BASE_CLASS,
+                    mobileHoverImageClass,
                     "hidden group-hover:block group-[.tapped]:block",
                   ].join(" ")}
+                  style={mobileHoverImageStyle}
                 />
               </>
             ) : (
@@ -236,9 +255,10 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
                   src={button.hoverImageUrl}
                   alt={button.hoverImageAlt}
                   className={[
-                    MOBILE_IMAGE_BASE_CLASS,
+                    mobileHoverImageClass,
                     "hidden group-hover:block",
                   ].join(" ")}
+                  style={mobileHoverImageStyle}
                 />
               </>
             ) : (
@@ -290,9 +310,10 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
               src={button.hoverImageUrl}
               alt={button.hoverImageAlt}
               className={[
-                MOBILE_IMAGE_BASE_CLASS,
+                mobileHoverImageClass,
                 "hidden group-hover:block group-[.tapped]:block",
               ].join(" ")}
+              style={mobileHoverImageStyle}
             />
           </ChoiceTile>
         </div>

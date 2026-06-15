@@ -19,14 +19,37 @@ export default async function AngerPasswordPage({
 
   return (
     <main
-      className="grid min-h-dvh place-items-center bg-black p-5 text-black"
+      className="grid min-h-dvh place-items-center bg-black p-5"
       style={{ fontFamily: WIN95_FONT }}
     >
-      <section className="window w-[min(92vw,420px)]">
-        <div className="title-bar">
+      <section
+        className="w-[min(92vw,420px)]"
+        style={{
+          background: "silver",
+          color: "#111",
+          boxShadow:
+            "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+          padding: 3,
+        }}
+      >
+        <div
+          className="title-bar"
+          style={{
+            alignItems: "center",
+            background: "linear-gradient(90deg, navy, #1084d0)",
+            color: "#fff",
+            display: "flex",
+            fontWeight: 700,
+            minHeight: 18,
+            padding: "2px 3px",
+          }}
+        >
           <div className="title-bar-text">Pathway unavailable</div>
         </div>
-        <div className="window-body">
+        <div
+          className="window-body"
+          style={{ background: "silver", color: "#111", padding: 12 }}
+        >
           <p className="mb-3">
             This pathway is not open yet. Enter the password to continue.
           </p>
@@ -42,6 +65,7 @@ export default async function AngerPasswordPage({
                 required
                 autoFocus
                 className="min-w-0 flex-1"
+                style={{ background: "#fff", color: "#111" }}
               />
             </div>
 
