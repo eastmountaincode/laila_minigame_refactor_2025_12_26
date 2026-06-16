@@ -80,10 +80,14 @@ class DragPad {
     this.ctx.resume().catch(() => {});
   }
 
-  start() {
+  unlock() {
     this.ctx = this.ctx || createAudioContext();
-    if (!this.ctx) return;
     this.resumeContext();
+  }
+
+  start() {
+    this.unlock();
+    if (!this.ctx) return;
     if (this.active) return;
 
     this.masterGain = this.ctx.createGain();

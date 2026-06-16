@@ -147,8 +147,7 @@ export function DenialClient() {
     lastPos.current = { x: clientX, y: clientY };
     lastTime.current = now;
     dragStartTime.current = now;
-    dragPad.start();
-    dragPad.update(120);
+    dragPad.unlock();
     setIsDragging(true);
 
     if (!flowerPos) {
@@ -173,6 +172,8 @@ export function DenialClient() {
       requestAnimationFrame(snapBack);
       return;
     }
+    dragPad.start();
+    dragPad.update(120);
 
     const trackSpeed = (cx: number, cy: number) => {
       const now = performance.now();
@@ -224,17 +225,13 @@ export function DenialClient() {
     window.addEventListener("mouseup", onEnd);
     window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onEnd);
-    window.addEventListener("touchcancel", onEnd);
     document.addEventListener("mouseleave", onEnd);
-    window.addEventListener("blur", onEnd);
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onEnd);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onEnd);
-      window.removeEventListener("touchcancel", onEnd);
       document.removeEventListener("mouseleave", onEnd);
-      window.removeEventListener("blur", onEnd);
     };
   }, [isDragging]);
 
