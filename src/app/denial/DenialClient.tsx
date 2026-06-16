@@ -21,7 +21,7 @@ const MODAL_DELAY = 1500;
 
 export function DenialClient() {
   const [showModal, setShowModal] = useState(false);
-  const [webcamActive, setWebcamActive] = useState(true);
+  const [webcamActive] = useState(true);
   const [flowerPos, setFlowerPos] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [blurAmount, setBlurAmount] = useState(0);
@@ -63,12 +63,12 @@ export function DenialClient() {
   }, []);
 
   // Draw trail on canvas — runs every frame
-  const drawTrail = useCallback(() => {
+  const drawTrail = useCallback(function drawTrailFrame() {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     const img = flowerImg.current;
     if (!canvas || !ctx || !img || !img.complete) {
-      trailAnimFrame.current = requestAnimationFrame(drawTrail);
+      trailAnimFrame.current = requestAnimationFrame(drawTrailFrame);
       return;
     }
 
@@ -83,7 +83,7 @@ export function DenialClient() {
       ctx.drawImage(img, pos.x * dpr, pos.y * dpr, flowerSize * dpr, flowerSize * (img.naturalHeight / img.naturalWidth) * dpr);
     }
 
-    trailAnimFrame.current = requestAnimationFrame(drawTrail);
+    trailAnimFrame.current = requestAnimationFrame(drawTrailFrame);
   }, []);
 
   // Start/stop the render loop
@@ -138,6 +138,27 @@ export function DenialClient() {
     return () => clearTimeout(timer);
   }, []);
 
+  const beginFlowerDrag = (
+    clientX: number,
+    clientY: number,
+    rect: DOMRect,
+  ) => {
+    const now = performance.now();
+    lastPos.current = { x: clientX, y: clientY };
+    lastTime.current = now;
+    dragStartTime.current = now;
+    dragPad.start();
+    dragPad.update(120);
+    setIsDragging(true);
+
+    if (!flowerPos) {
+      dragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
+      setFlowerPos({ x: rect.left, y: rect.top });
+    } else {
+      dragOffset.current = { x: clientX - flowerPos.x, y: clientY - flowerPos.y };
+    }
+  };
+
   useEffect(() => {
     if (!isDragging) {
       dragPad.stop();
@@ -152,9 +173,6 @@ export function DenialClient() {
       requestAnimationFrame(snapBack);
       return;
     }
-    dragPad.start();
-    dragStartTime.current = performance.now();
-    lastTime.current = performance.now();
 
     const trackSpeed = (cx: number, cy: number) => {
       const now = performance.now();
@@ -197,6 +215,7 @@ export function DenialClient() {
     const onTouchMove = (e: TouchEvent) => {
       e.preventDefault();
       const touch = e.touches[0];
+      if (!touch) return;
       setFlowerPos({ x: touch.clientX - dragOffset.current.x, y: touch.clientY - dragOffset.current.y });
       trackSpeed(touch.clientX, touch.clientY);
     };
@@ -220,29 +239,16 @@ export function DenialClient() {
   }, [isDragging]);
 
   const handleFlowerMouseDown = (e: React.MouseEvent) => {
-    lastPos.current = { x: e.clientX, y: e.clientY };
-    setIsDragging(true);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    if (!flowerPos) {
-      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-      setFlowerPos({ x: rect.left, y: rect.top });
-    } else {
-      dragOffset.current = { x: e.clientX - flowerPos.x, y: e.clientY - flowerPos.y };
-    }
+    beginFlowerDrag(e.clientX, e.clientY, rect);
   };
 
   const handleFlowerTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
     const touch = e.touches[0];
-    lastPos.current = { x: touch.clientX, y: touch.clientY };
+    if (!touch) return;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setIsDragging(true);
-    if (!flowerPos) {
-      dragOffset.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-      setFlowerPos({ x: rect.left, y: rect.top });
-    } else {
-      dragOffset.current = { x: touch.clientX - flowerPos.x, y: touch.clientY - flowerPos.y };
-    }
+    beginFlowerDrag(touch.clientX, touch.clientY, rect);
   };
 
   // Track "BEGIN" positions — appear while dragging, before blur starts

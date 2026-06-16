@@ -1,5 +1,9 @@
 const cache = new Map<string, HTMLAudioElement>();
 
+type WebAudioWindow = typeof window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
 function preload(src: string): HTMLAudioElement {
   let audio = cache.get(src);
   if (!audio) {
@@ -54,6 +58,12 @@ function createReverbIR(ctx: AudioContext): AudioBuffer {
   return buffer;
 }
 
+function createAudioContext() {
+  const AudioContextCtor =
+    window.AudioContext || (window as WebAudioWindow).webkitAudioContext;
+  return AudioContextCtor ? new AudioContextCtor() : null;
+}
+
 class DragPad {
   private ctx: AudioContext | null = null;
   private chordOscs: OscillatorNode[] = [];
@@ -65,10 +75,16 @@ class DragPad {
   private currentChord = -1;
   private startTime = 0;
 
+  private resumeContext() {
+    if (!this.ctx || this.ctx.state !== "suspended") return;
+    this.ctx.resume().catch(() => {});
+  }
+
   start() {
+    this.ctx = this.ctx || createAudioContext();
+    if (!this.ctx) return;
+    this.resumeContext();
     if (this.active) return;
-    this.ctx = this.ctx || new AudioContext();
-    if (this.ctx.state === "suspended") this.ctx.resume();
 
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 0;
@@ -153,6 +169,7 @@ class DragPad {
 
   update(speed: number) {
     if (!this.active || !this.ctx || !this.masterGain) return;
+    this.resumeContext();
     const t = this.ctx.currentTime;
 
     const clamped = Math.min(speed, 900);
@@ -183,7 +200,7 @@ class DragPad {
     }
 
     // Volume
-    const vol = Math.min(clamped / 400, 0.18);
+    const vol = Math.min(0.035 + clamped / 550, 0.18);
     this.masterGain.gain.setTargetAtTime(vol, t, 0.15);
 
     // Timed drone layers — volume responds to speed just like the chords
