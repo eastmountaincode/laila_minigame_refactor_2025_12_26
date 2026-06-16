@@ -10,7 +10,34 @@ import {
 
 // Motion detection threshold (0-1, lower = more sensitive)
 const DEFAULT_THRESHOLD = 0.02; // Desktop threshold
-const MOBILE_THRESHOLD = 0.06; // Higher threshold for mobile (less sensitive)
+const MOBILE_THRESHOLD = 0.035;
+
+function waitForVideoMetadata(video: HTMLVideoElement) {
+  if (video.videoWidth > 0 && video.videoHeight > 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    let timeoutId = 0;
+
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      video.removeEventListener("loadedmetadata", handleReady);
+      video.removeEventListener("canplay", handleReady);
+      video.removeEventListener("error", handleReady);
+    };
+
+    const handleReady = () => {
+      cleanup();
+      resolve();
+    };
+
+    timeoutId = window.setTimeout(handleReady, 4000);
+    video.addEventListener("loadedmetadata", handleReady, { once: true });
+    video.addEventListener("canplay", handleReady, { once: true });
+    video.addEventListener("error", handleReady, { once: true });
+  });
+}
 
 interface WebcamMotionProps {
   /** Whether webcam is active */
@@ -28,6 +55,7 @@ export function WebcamMotion({
 }: WebcamMotionProps) {
   const [isMobile, setIsMobile] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoElementRef = useRef<HTMLVideoElement>(null);
 
   // Detect mobile on mount
   useEffect(() => {
@@ -43,6 +71,7 @@ export function WebcamMotion({
   const frameIndexRef = useRef(0);
   const animationFrameRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
+  const startRequestRef = useRef(0);
 
   // Initialize WebGL
   const initWebGL = useCallback(() => {
@@ -126,6 +155,18 @@ export function WebcamMotion({
       return;
     }
 
+    const canvas = canvasRef.current;
+    if (canvas && video.videoWidth > 0 && video.videoHeight > 0) {
+      if (
+        canvas.width !== video.videoWidth ||
+        canvas.height !== video.videoHeight
+      ) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+    }
+
     const frameCount = frameIndexRef.current;
     const currentIndex = frameCount % 2;
     const previousIndex = (frameCount + 1) % 2;
@@ -133,7 +174,20 @@ export function WebcamMotion({
     // Upload current video frame to current texture
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, textures[currentIndex]);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+    try {
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        video,
+      );
+    } catch (error) {
+      console.warn("Skipping webcam frame upload:", error);
+      animationFrameRef.current = requestAnimationFrame(renderFrame);
+      return;
+    }
 
     // First 2 frames: initialize both textures with video data and show black
     // This ensures we have valid data in both textures before starting motion detection
@@ -141,7 +195,14 @@ export function WebcamMotion({
       // Also upload to the other texture slot so both have valid data
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, textures[previousIndex]);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        video,
+      );
       // Clear to black during initialization
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -173,56 +234,10 @@ export function WebcamMotion({
     animationFrameRef.current = requestAnimationFrame(renderFrame);
   }, [effectiveThreshold]);
 
-  // Start webcam
-  const startWebcam = useCallback(async () => {
-    // Check if getUserMedia is available (requires HTTPS except on localhost)
-    if (!navigator.mediaDevices?.getUserMedia) {
-      console.warn(
-        "getUserMedia not available. Webcam requires HTTPS (except on localhost)."
-      );
-      return;
-    }
-
-    // Reset frame counter so we start fresh
-    frameIndexRef.current = 0;
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: "user",
-        },
-        audio: false,
-      });
-
-      streamRef.current = stream;
-
-      // Create video element
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      video.playsInline = true;
-      video.muted = true;
-      await video.play();
-      videoRef.current = video;
-
-      // Resize canvas to match video
-      const canvas = canvasRef.current;
-      if (canvas && glRef.current) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        glRef.current.viewport(0, 0, canvas.width, canvas.height);
-      }
-
-      // Start render loop
-      renderFrame();
-    } catch (err) {
-      console.error("Failed to access webcam:", err);
-    }
-  }, [renderFrame]);
-
   // Stop webcam
   const stopWebcam = useCallback(() => {
+    startRequestRef.current++;
+
     // Stop animation loop
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -250,6 +265,79 @@ export function WebcamMotion({
     }
   }, []);
 
+  // Start webcam
+  const startWebcam = useCallback(async () => {
+    // Check if getUserMedia is available (requires HTTPS except on localhost)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      console.warn(
+        "getUserMedia not available. Webcam requires HTTPS (except on localhost)."
+      );
+      return;
+    }
+
+    stopWebcam();
+
+    const requestId = ++startRequestRef.current;
+    const isSmallViewport = window.innerWidth < 768;
+
+    // Reset frame counter so we start fresh
+    frameIndexRef.current = 0;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: isSmallViewport ? 640 : 1280 },
+          height: { ideal: isSmallViewport ? 480 : 720 },
+          facingMode: { ideal: "user" },
+        },
+        audio: false,
+      });
+
+      if (startRequestRef.current !== requestId) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      streamRef.current = stream;
+
+      const video = videoElementRef.current ?? document.createElement("video");
+      video.autoplay = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.setAttribute("autoplay", "");
+      video.setAttribute("muted", "");
+      video.setAttribute("playsinline", "");
+      video.setAttribute("webkit-playsinline", "");
+      video.srcObject = stream;
+
+      await waitForVideoMetadata(video);
+
+      if (startRequestRef.current !== requestId) {
+        if (video.srcObject === stream) {
+          video.srcObject = null;
+        }
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      await video.play();
+      videoRef.current = video;
+
+      // Resize canvas to match video
+      const canvas = canvasRef.current;
+      if (canvas && glRef.current) {
+        canvas.width = video.videoWidth || window.innerWidth;
+        canvas.height = video.videoHeight || window.innerHeight;
+        glRef.current.viewport(0, 0, canvas.width, canvas.height);
+      }
+
+      // Start render loop
+      renderFrame();
+    } catch (err) {
+      console.error("Failed to access webcam:", err);
+    }
+  }, [renderFrame, stopWebcam]);
+
   // Initialize WebGL on mount
   useEffect(() => {
     initWebGL();
@@ -272,12 +360,23 @@ export function WebcamMotion({
     } else {
       stopWebcam();
     }
+    return () => stopWebcam();
   }, [isActive, startWebcam, stopWebcam]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={`h-full w-full object-cover ${className}`}
-    />
+    <>
+      <video
+        ref={videoElementRef}
+        autoPlay
+        muted
+        playsInline
+        aria-hidden="true"
+        className="pointer-events-none fixed left-0 top-0 h-px w-px opacity-0"
+      />
+      <canvas
+        ref={canvasRef}
+        className={`h-full w-full object-cover ${className}`}
+      />
+    </>
   );
 }
