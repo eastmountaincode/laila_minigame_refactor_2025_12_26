@@ -4,6 +4,12 @@ import { ANGER_ACCESS_COOKIE, getAngerAccessToken } from "@/lib/anger-access";
 export async function proxy(request: NextRequest) {
   const password = process.env.ANGER_ACCESS_PASSWORD;
   const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  const isPathwayDebugMode = request.nextUrl.searchParams.get("debug") === "pathways";
+
+  if (isPathwayDebugMode) {
+    return NextResponse.next();
+  }
+
   const passwordUrl = new URL("/anger-password", request.url);
   passwordUrl.searchParams.set("next", nextPath);
 

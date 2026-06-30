@@ -70,6 +70,7 @@ interface ButtonData {
 
 interface HomeButtonsProps {
   buttons: ButtonData[];
+  unlockPathways?: boolean;
 }
 
 const DESKTOP_BUTTON_ORDER = ["bargaining", "anger", "denial", "tender"];
@@ -111,7 +112,10 @@ function getMobileHoverImageStyle(
   };
 }
 
-export function HomeButtons({ buttons }: HomeButtonsProps) {
+export function HomeButtons({
+  buttons,
+  unlockPathways = false,
+}: HomeButtonsProps) {
   const [tenderOpen, setTenderOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [lockedPreviewKey, setLockedPreviewKey] = useState<string | null>(null);
@@ -130,6 +134,10 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
     const key = button.label?.trim().toLowerCase();
     const layout = BUTTON_LAYOUT[key];
     if (!layout) return null;
+    const href =
+      unlockPathways && key === "anger"
+        ? `${button.href}?debug=pathways`
+        : button.href;
 
     const mobileTileStyle: CSSProperties = {
       width: mobileScaledSize(layout.desktopWidth),
@@ -142,7 +150,7 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
       layout.mobileHoverWidthScale
     );
 
-    if (LOCKED_CHOICES.has(key)) {
+    if (LOCKED_CHOICES.has(key) && !unlockPathways) {
       const isTapped = lockedPreviewKey === key;
       const lockedClassName = [
         "group locked-choice",
@@ -293,7 +301,7 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
       return (
         <div key={button._id} className="pointer-events-auto">
           <ChoiceTile
-            href={button.href}
+            href={href}
             ariaLabel={button.label}
             className="group"
             style={mobileTileStyle}
@@ -323,7 +331,7 @@ export function HomeButtons({ buttons }: HomeButtonsProps) {
     return (
       <div key={button._id} className={layout.desktopPosition}>
         <ChoiceTile
-          href={button.href}
+          href={href}
           ariaLabel={button.label}
           className="group"
         >
