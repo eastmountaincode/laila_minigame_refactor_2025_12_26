@@ -1,7 +1,3 @@
-export const HOME_ASSETS_LOADED_COOKIE = "laila_home_assets_loaded";
-export const HOME_ASSETS_LOADED_STORAGE_KEY = "laila-home-assets-loaded";
-export const HOME_ASSETS_LOADED_VALUE = "v3-responsive-backgrounds";
-
 export const CREDITS_BACKGROUND_IMAGE = "/images/post-it-note.png";
 export const LYLIA_IMAGE = "/images/laila_face_pic_hands.png";
 export const LAILA_NAME_IMAGE = "/images/laila-smith-text-for-credits.png";
@@ -10,11 +6,37 @@ export const HOME_STATIC_PRELOAD_ASSETS = [
   CREDITS_BACKGROUND_IMAGE,
   LYLIA_IMAGE,
   LAILA_NAME_IMAGE,
+  "/fonts/pyxis-regular.ttf",
+  "/assets/webflow/fonts/Apple Chancery.ttf",
+  "/assets/webflow/fonts/PixelTimesNewRoman.ttf",
+  "/assets/webflow/fonts/pixelated-times-new-roman.otf",
+  "/assets/win95/ms_sans_serif.woff2",
+  "/assets/win95/ms_sans_serif.woff",
+  "/assets/win95/ms_sans_serif_bold.woff2",
+  "/assets/win95/ms_sans_serif_bold.woff",
   "/assets/win95/info_icon.png",
   "/assets/win95/warning_icon.png",
   "/assets/win95/dialog_icon.png",
   "/assets/win95/error_icon.png",
   "/assets/win95/camera.png",
+  "/assets/win95/click.mp3",
+  "/assets/win95/chord.wav",
+  "/assets/webflow/images/anger-picmix-crop.gif",
+  "/assets/webflow/images/angry-natsuki.png",
+  "/assets/webflow/images/bargaining-cropped.gif",
+  "/assets/webflow/images/beautiful-orchid-free-png.webp",
+  "/assets/webflow/images/brown-paper-bag.png",
+  "/assets/webflow/images/cropped-picmix.gif",
   "/assets/webflow/images/home_icon.gif",
   "/assets/webflow/images/home_gif.gif",
+  "/assets/webflow/images/natsuki-annoyed.gif",
+  "/assets/webflow/images/picmix.com_1607078.png",
+  "/assets/webflow/images/picmix.com_1704987.png",
+  "/assets/webflow/images/picmix.com_2064406.png",
+  "/assets/webflow/images/picmix.com_2164255.png",
+  "/assets/webflow/images/rose.png",
+  "/assets/webflow/images/whats-it-worth-infinite.gif",
+  "/assets/webflow/videos/present-moshed-compressedx2-poster-00001.jpg",
+  "/assets/webflow/videos/present-moshed-compressedx2-transcode.webm",
+  "/assets/webflow/videos/present-moshed-compressedx2-transcode.mp4",
 ] as const;

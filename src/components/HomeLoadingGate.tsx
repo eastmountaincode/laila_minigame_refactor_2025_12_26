@@ -2,20 +2,57 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
-import {
-  HOME_ASSETS_LOADED_COOKIE,
-  HOME_ASSETS_LOADED_STORAGE_KEY,
-  HOME_ASSETS_LOADED_VALUE,
-} from "@/lib/home-assets";
 
 const LOADER_SRC = "/assets/loaders/catscape-loader.gif";
 const MAX_LOADING_MS = 15000;
+const PRELOAD_BATCH_SIZE = 8;
 
 type HomeLoadingGateProps = {
   assets: string[];
-  initiallyLoaded?: boolean;
   children: ReactNode;
 };
+
+const IMAGE_EXTENSIONS = new Set([
+  ".avif",
+  ".bmp",
+  ".gif",
+  ".ico",
+  ".jpeg",
+  ".jpg",
+  ".png",
+  ".svg",
+  ".webp",
+]);
+const MEDIA_EXTENSIONS = new Set([
+  ".m4a",
+  ".mp3",
+  ".mp4",
+  ".ogg",
+  ".wav",
+  ".webm",
+]);
+
+function getAssetPathname(src: string) {
+  try {
+    return new URL(src, window.location.href).pathname.toLowerCase();
+  } catch {
+    return src.toLowerCase();
+  }
+}
+
+function isImageAsset(src: string) {
+  const pathname = getAssetPathname(src);
+  return Array.from(IMAGE_EXTENSIONS).some((extension) =>
+    pathname.endsWith(extension),
+  );
+}
+
+function isMediaAsset(src: string) {
+  const pathname = getAssetPathname(src);
+  return Array.from(MEDIA_EXTENSIONS).some((extension) =>
+    pathname.endsWith(extension),
+  );
+}
 
 function preloadImage(src: string) {
   return new Promise<void>((resolve) => {
@@ -42,20 +79,71 @@ function preloadImage(src: string) {
   });
 }
 
-function rememberHomeAssetsLoaded() {
-  window.sessionStorage.setItem(
-    HOME_ASSETS_LOADED_STORAGE_KEY,
-    HOME_ASSETS_LOADED_VALUE,
-  );
-  document.cookie = `${HOME_ASSETS_LOADED_COOKIE}=${HOME_ASSETS_LOADED_VALUE}; path=/; max-age=2592000; SameSite=Lax`;
+function preloadMediaAsset(src: string) {
+  return new Promise<void>((resolve) => {
+    let isDone = false;
+    const media = /\.(mp4|webm)$/i.test(getAssetPathname(src))
+      ? document.createElement("video")
+      : document.createElement("audio");
+
+    function finish() {
+      if (isDone) return;
+      isDone = true;
+      window.clearTimeout(timeout);
+      media.removeAttribute("src");
+      media.load();
+      resolve();
+    }
+
+    media.preload = "auto";
+    media.muted = true;
+    media.addEventListener("canplaythrough", finish, { once: true });
+    media.addEventListener("loadeddata", finish, { once: true });
+    media.addEventListener("error", finish, { once: true });
+    const timeout = window.setTimeout(finish, MAX_LOADING_MS);
+    media.src = src;
+    media.load();
+  });
+}
+
+async function preloadFetchableAsset(src: string) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), MAX_LOADING_MS);
+
+  try {
+    const response = await fetch(src, {
+      cache: "force-cache",
+      signal: controller.signal,
+    });
+
+    if (!response.ok) return;
+
+    await response.blob();
+  } catch {
+    if (isMediaAsset(src)) {
+      await preloadMediaAsset(src);
+    }
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+function preloadAsset(src: string) {
+  return isImageAsset(src) ? preloadImage(src) : preloadFetchableAsset(src);
+}
+
+async function preloadAssetsInBatches(assets: string[]) {
+  for (let index = 0; index < assets.length; index += PRELOAD_BATCH_SIZE) {
+    const batch = assets.slice(index, index + PRELOAD_BATCH_SIZE);
+    await Promise.allSettled(batch.map(preloadAsset));
+  }
 }
 
 export function HomeLoadingGate({
   assets,
-  initiallyLoaded = false,
   children,
 }: HomeLoadingGateProps) {
-  const [isLoaded, setIsLoaded] = useState(initiallyLoaded);
+  const [isLoaded, setIsLoaded] = useState(false);
   const preloadAssets = useMemo(
     () => Array.from(new Set([LOADER_SRC, ...assets].filter(Boolean))),
     [assets],
@@ -63,23 +151,10 @@ export function HomeLoadingGate({
 
   useEffect(() => {
     let isMounted = true;
-    const wasAlreadyLoaded =
-      initiallyLoaded ||
-      window.sessionStorage.getItem(HOME_ASSETS_LOADED_STORAGE_KEY) ===
-        HOME_ASSETS_LOADED_VALUE;
-
-    if (wasAlreadyLoaded) {
-      queueMicrotask(() => {
-        if (isMounted) {
-          setIsLoaded(true);
-        }
-      });
-    }
 
     async function preloadAssetsForPage() {
-      await Promise.allSettled(preloadAssets.map(preloadImage));
+      await preloadAssetsInBatches(preloadAssets);
       if (!isMounted) return;
-      rememberHomeAssetsLoaded();
       setIsLoaded(true);
     }
 
@@ -88,7 +163,7 @@ export function HomeLoadingGate({
     return () => {
       isMounted = false;
     };
-  }, [initiallyLoaded, preloadAssets]);
+  }, [preloadAssets]);
 
   return (
     <>

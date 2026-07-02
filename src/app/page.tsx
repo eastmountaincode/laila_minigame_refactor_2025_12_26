@@ -1,15 +1,10 @@
 import { BackgroundMedia } from "@/components/BackgroundMedia";
 import { HomeLoadingGate } from "@/components/HomeLoadingGate";
 import { HomeButtons } from "@/components/HomeButtons";
-import { cookies } from "next/headers";
 import { sanityFetch } from "@/sanity/lib/fetch";
 import { HOMEPAGE_QUERY, CHOICE_BUTTONS_QUERY } from "@/sanity/lib/queries";
 import { urlFor } from "@/sanity/lib/image";
-import {
-  HOME_ASSETS_LOADED_COOKIE,
-  HOME_ASSETS_LOADED_VALUE,
-  HOME_STATIC_PRELOAD_ASSETS,
-} from "@/lib/home-assets";
+import { HOME_STATIC_PRELOAD_ASSETS } from "@/lib/home-assets";
 
 type SanityImage = {
   alt?: string;
@@ -57,10 +52,6 @@ function isPathwayDebugMode(debug?: string) {
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const unlockPathways = isPathwayDebugMode(params?.debug);
-  const cookieStore = await cookies();
-  const initiallyLoaded =
-    cookieStore.get(HOME_ASSETS_LOADED_COOKIE)?.value ===
-    HOME_ASSETS_LOADED_VALUE;
   const data = await sanityFetch<HomepageData | null>({
     query: HOMEPAGE_QUERY,
     tags: ["homepage"],
@@ -96,6 +87,7 @@ export default async function Home({ searchParams }: HomeProps) {
     hoverImageAlt: button.hoverImage?.alt ?? "",
   }));
   const preloadAssets = [
+    mediaType === "video" ? mediaUrl : undefined,
     mediaType === "image" ? backgroundImageSources?.mobile : undefined,
     mediaType === "image" ? backgroundImageSources?.square : undefined,
     mediaType === "image" ? backgroundImageSources?.desktop : undefined,
@@ -108,10 +100,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <main className="home-viewport bg-black text-white">
-      <HomeLoadingGate
-        assets={preloadAssets}
-        initiallyLoaded={initiallyLoaded}
-      >
+      <HomeLoadingGate assets={preloadAssets}>
         {mediaUrl && (
           <BackgroundMedia
             className="z-0"
