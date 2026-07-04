@@ -58,13 +58,16 @@ export default class Game {
 		];
 		this.COMPLETION_SOUND_EVENT = 'SystemExit';
 		// Walking/exit cutscene tuning.
+		// Tender localhost serves this copied file from site/public/win98-web.
+		// Keep win98-web/public/games/skifree/js/game.js synced when tuning.
 		// Max speed cap while walking (skier uses normal mouse-based input, just slower).
 		this.WALKING_SPEED = 70;
 		// Forward world distance walked (matches HUD distance) before the exit cutscene
 		// kicks in.
-		this.WALKING_DISTANCE = 250;
-		this.EXIT_TO_SUNSHINE_DELAY_MS = 5000;
+		this.WALKING_DISTANCE = 200;
+		this.EXIT_TO_SUNSHINE_DELAY_MS = 4300;
 		this.SUNSHINE_FADE_MS = 1800;
+		this.SUNSHINE_COMPLETION_DELAY_MS = 0;
 		this.getHTMLElements();
 		this.endingVideoObjectUrls = [];
 		this._preloadEndingVideos();
@@ -436,6 +439,10 @@ export default class Game {
 		}
 	}
 
+	_wait(ms) {
+		return new Promise((resolve) => window.setTimeout(resolve, ms));
+	}
+
 	// Close the BeFree $Window in the parent Win98 desktop. Same-origin iframe, so we can
 	// reach the enclosing os-gui window element via frameElement → closest('.os-window').
 	_closeBeFreeWindow() {
@@ -449,8 +456,640 @@ export default class Game {
 
 	async _completeBeFreePathway() {
 		this.mode = 'game-over';
-		await this._playParentSound(this.COMPLETION_SOUND_EVENT);
-		this._showFinalEmailDialog();
+		await this._wait(this.SUNSHINE_COMPLETION_DELAY_MS);
+		this._showFinalEmailDialogExact();
+		void this._playParentSound(this.COMPLETION_SOUND_EVENT);
+	}
+
+	_showFinalEmailDialogExact() {
+		const doc = (window.parent && window.parent.document) || document;
+		if (!doc) return;
+
+		this._ensureFinalEmailDialogExactStyles(doc);
+
+		const screen = doc.getElementById('screen') || doc.body;
+		const existing = doc.getElementById('befree-final-email-overlay');
+		if (existing) existing.remove();
+
+		const overlay = doc.createElement('div');
+		overlay.id = 'befree-final-email-overlay';
+		overlay.className = 'befree-final-email-overlay';
+		if (!doc.getElementById('screen')) overlay.style.position = 'fixed';
+
+		const backdrop = doc.createElement('div');
+		backdrop.className = 'befree-final-email-backdrop';
+
+		const dialogEl = doc.createElement('div');
+		dialogEl.className = 'befree-exact-dialog';
+		dialogEl.setAttribute('role', 'dialog');
+		dialogEl.setAttribute('aria-modal', 'true');
+		dialogEl.setAttribute('aria-label', 'Attention: You chose tender.');
+
+		overlay.append(backdrop, dialogEl);
+		screen.appendChild(overlay);
+
+		const parentWindow = window.parent || window;
+		if (parentWindow.$Window && typeof parentWindow.$Window.Z_INDEX === 'number') {
+			overlay.style.zIndex = String(parentWindow.$Window.Z_INDEX + 2);
+			parentWindow.$Window.Z_INDEX += 3;
+		}
+
+		let emailValue = '';
+		let isDragging = false;
+		let dragStartX = 0;
+		let dragStartY = 0;
+		let offsetX = 0;
+		let offsetY = 0;
+
+		const playClick = () => {
+			const playSound = window.parent && window.parent.playSound;
+			if (typeof playSound === 'function') playSound('Default');
+		};
+		const closeAll = () => {
+			overlay.remove();
+			this._closeBeFreeWindow();
+		};
+		const clear = () => {
+			while (dialogEl.firstChild) dialogEl.removeChild(dialogEl.firstChild);
+		};
+		const makeTitlebar = () => {
+			const titlebar = doc.createElement('div');
+			titlebar.className = 'befree-exact-titlebar';
+
+			const title = doc.createElement('span');
+			title.className = 'befree-exact-title';
+			title.textContent = 'Attention: You chose tender.';
+
+			const buttons = doc.createElement('div');
+			buttons.className = 'befree-exact-titlebar-buttons';
+
+			const helpButton = doc.createElement('button');
+			helpButton.type = 'button';
+			helpButton.className = 'befree-exact-titlebar-button befree-exact-help';
+			helpButton.setAttribute('aria-label', 'Help');
+			helpButton.tabIndex = -1;
+			helpButton.addEventListener('click', (event) => {
+				event.preventDefault();
+				playClick();
+			});
+
+			const closeButton = doc.createElement('button');
+			closeButton.type = 'button';
+			closeButton.className = 'befree-exact-titlebar-button befree-exact-close';
+			closeButton.setAttribute('aria-label', 'Close');
+			closeButton.tabIndex = -1;
+			closeButton.addEventListener('click', (event) => {
+				event.preventDefault();
+				playClick();
+				closeAll();
+			});
+
+			buttons.append(helpButton, closeButton);
+			titlebar.append(title, buttons);
+			return titlebar;
+		};
+		const makeMessageRow = (message) => {
+			const row = doc.createElement('div');
+			row.className = 'befree-exact-message-row';
+
+			const icon = doc.createElement('img');
+			icon.src = '/assets/win95/warning_icon.png';
+			icon.alt = '';
+			icon.width = 32;
+			icon.height = 32;
+			icon.draggable = false;
+
+			const text = doc.createElement('p');
+			text.textContent = message;
+
+			row.append(icon, text);
+			return row;
+		};
+		const makeButton = (label, isDefault = false) => {
+			const button = doc.createElement('button');
+			button.type = 'button';
+			button.className = `befree-exact-button${isDefault ? ' befree-exact-button-default' : ''}`;
+			button.textContent = label;
+			return button;
+		};
+		const mountBody = () => {
+			clear();
+			dialogEl.appendChild(makeTitlebar());
+			const body = doc.createElement('div');
+			body.className = 'befree-exact-body';
+			dialogEl.appendChild(body);
+			return body;
+		};
+		const renderMain = () => {
+			const body = mountBody();
+			body.appendChild(makeMessageRow('Do you allow yourself to move tenderly through the world?'));
+
+			const form = doc.createElement('form');
+			form.className = 'befree-exact-form';
+
+			const fieldRow = doc.createElement('label');
+			fieldRow.className = 'befree-exact-field';
+
+			const labelText = doc.createElement('span');
+			labelText.textContent = 'Email:';
+
+			const input = doc.createElement('input');
+			input.className = 'befree-exact-input';
+			input.type = 'email';
+			input.required = true;
+			input.placeholder = 'enter your email';
+			input.value = emailValue;
+			input.addEventListener('input', () => {
+				emailValue = input.value;
+			});
+
+			fieldRow.append(labelText, input);
+			form.appendChild(fieldRow);
+
+			const buttonRow = doc.createElement('div');
+			buttonRow.className = 'befree-exact-buttons';
+
+			const submitButton = makeButton('Yes', true);
+			submitButton.type = 'submit';
+			const noButton = makeButton('No');
+			noButton.addEventListener('click', () => {
+				playClick();
+				renderConfirm();
+			});
+
+			buttonRow.append(submitButton, noButton);
+			form.appendChild(buttonRow);
+
+			const consent = doc.createElement('p');
+			consent.className = 'befree-exact-consent';
+			consent.textContent = 'By submitting your email, you agree to receive emails from me now and again. You may unsubscribe whenever you wish.';
+			form.appendChild(consent);
+
+			const status = doc.createElement('p');
+			status.className = 'befree-exact-status';
+			form.appendChild(status);
+
+			const setStatus = (message, isError = false) => {
+				status.style.display = 'block';
+				status.style.color = isError ? '#a41414' : '#555';
+				status.textContent = message;
+			};
+
+			form.addEventListener('submit', async (event) => {
+				event.preventDefault();
+				playClick();
+				submitButton.disabled = true;
+				noButton.disabled = true;
+				setStatus('Sending...');
+
+				try {
+					const response = await fetch('/api/subscribe', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ email: input.value, pathway: 'tender' }),
+					});
+					const result = await response.json().catch(() => null);
+					if (!response.ok) throw new Error(result?.error || `HTTP ${response.status}`);
+					renderComplete();
+				} catch (error) {
+					console.error('[BeFree] Email submission failed:', error);
+					submitButton.disabled = false;
+					noButton.disabled = false;
+					const fallbackMessage = 'Oops! Something went wrong while submitting the form.';
+					const message = error instanceof Error && error.message && !error.message.startsWith('HTTP ')
+						? error.message
+						: fallbackMessage;
+					setStatus(message === 'Failed to subscribe' ? fallbackMessage : message, true);
+				}
+			});
+
+			body.appendChild(form);
+			window.setTimeout(() => input.focus(), 0);
+		};
+		const renderConfirm = () => {
+			const body = mountBody();
+			body.appendChild(makeMessageRow("Are you sure you don't want my gift?"));
+
+			const buttonRow = doc.createElement('div');
+			buttonRow.className = 'befree-exact-buttons befree-exact-confirm-buttons';
+
+			const yesButton = makeButton('I want it', true);
+			yesButton.addEventListener('click', () => {
+				playClick();
+				renderMain();
+			});
+
+			const noButton = makeButton("Don't want");
+			noButton.addEventListener('click', () => {
+				playClick();
+				closeAll();
+			});
+
+			buttonRow.append(yesButton, noButton);
+			body.appendChild(buttonRow);
+		};
+		const renderComplete = () => {
+			const body = mountBody();
+			body.appendChild(makeMessageRow('Your gift is on its way.'));
+
+			const buttonRow = doc.createElement('div');
+			buttonRow.className = 'befree-exact-buttons befree-exact-confirm-buttons';
+
+			const okButton = makeButton('OK', true);
+			okButton.addEventListener('click', () => {
+				playClick();
+				closeAll();
+			});
+
+			buttonRow.appendChild(okButton);
+			body.appendChild(buttonRow);
+			window.setTimeout(() => okButton.focus(), 0);
+		};
+		const onMouseMove = (event) => {
+			if (!isDragging) return;
+			offsetX = event.clientX - dragStartX;
+			offsetY = event.clientY - dragStartY;
+			dialogEl.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+		};
+		const stopDrag = () => {
+			isDragging = false;
+			dialogEl.style.cursor = 'grab';
+			doc.removeEventListener('mousemove', onMouseMove);
+			doc.removeEventListener('mouseup', stopDrag);
+		};
+
+		dialogEl.addEventListener('mousedown', (event) => {
+			if (event.target.closest('input, button')) return;
+			isDragging = true;
+			dragStartX = event.clientX - offsetX;
+			dragStartY = event.clientY - offsetY;
+			dialogEl.style.cursor = 'grabbing';
+			doc.addEventListener('mousemove', onMouseMove);
+			doc.addEventListener('mouseup', stopDrag);
+		});
+
+		renderMain();
+	}
+
+	_ensureFinalEmailDialogExactStyles(doc) {
+		let style = doc.getElementById('befree-final-email-exact-styles');
+		if (!style) {
+			style = doc.createElement('style');
+			style.id = 'befree-final-email-exact-styles';
+			doc.head.appendChild(style);
+		}
+
+		style.textContent = `
+			@font-face {
+				font-family: "Pixelated MS Sans Serif";
+				font-style: normal;
+				font-weight: 400;
+				src:
+					url("/assets/win95/ms_sans_serif.woff2") format("woff2"),
+					url("/assets/win95/ms_sans_serif.woff") format("woff");
+			}
+			@font-face {
+				font-family: "Pixelated MS Sans Serif";
+				font-style: normal;
+				font-weight: 700;
+				src:
+					url("/assets/win95/ms_sans_serif_bold.woff2") format("woff2"),
+					url("/assets/win95/ms_sans_serif_bold.woff") format("woff");
+			}
+			.befree-final-email-overlay {
+				align-items: center;
+				display: flex;
+				inset: 0;
+				justify-content: center;
+				pointer-events: auto;
+				position: absolute;
+			}
+			.befree-final-email-backdrop {
+				inset: 0;
+				position: absolute;
+			}
+			.befree-exact-dialog {
+				background: silver;
+				box-shadow:
+					inset -4px -4px #0a0a0a,
+					inset 4px 4px #fff,
+					inset -8px -8px #777,
+					inset 8px 8px #dfdfdf;
+				box-sizing: border-box;
+				color: #222;
+				cursor: grab;
+				font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+				font-size: 17px;
+				font-weight: 700;
+				max-width: calc(100vw - 32px);
+				padding: 6px;
+				position: relative;
+				user-select: none;
+				width: min(92vw, 500px);
+				z-index: 1;
+				-webkit-font-smoothing: none;
+			}
+			.befree-exact-dialog,
+			.befree-exact-dialog * {
+				font-family: "Pixelated MS Sans Serif", Arial, sans-serif !important;
+				letter-spacing: 0 !important;
+				text-rendering: geometricPrecision;
+				-webkit-font-smoothing: none !important;
+			}
+			.befree-exact-titlebar {
+				align-items: center;
+				background: linear-gradient(90deg, navy, #1084d0);
+				box-sizing: border-box;
+				color: #fff;
+				display: flex;
+				font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+				font-size: 15px;
+				font-weight: 700;
+				justify-content: space-between;
+				min-height: 32px;
+				padding: 6px 5px 6px 7px;
+			}
+			.befree-exact-title {
+				letter-spacing: 0;
+				line-height: 20px;
+				margin-right: 24px;
+				overflow-wrap: anywhere;
+			}
+			.befree-exact-titlebar-buttons {
+				display: flex;
+				flex: 0 0 auto;
+			}
+			.befree-exact-dialog button.befree-exact-titlebar-button {
+				appearance: none !important;
+				background: silver;
+				background-repeat: no-repeat;
+				border: none;
+				border-image: none !important;
+				box-shadow:
+					inset -2px -2px #0a0a0a,
+					inset 2px 2px #fff,
+					inset -4px -4px #777,
+					inset 4px 4px #dfdfdf;
+				cursor: pointer;
+				display: block;
+				height: 24px;
+				image-rendering: pixelated;
+				min-height: 24px;
+				min-width: 28px;
+				padding: 0;
+				width: 28px;
+			}
+			.befree-exact-dialog button.befree-exact-titlebar-button + button.befree-exact-titlebar-button {
+				margin-left: 2px;
+			}
+			.befree-exact-dialog button.befree-exact-help {
+				background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='6' height='9' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23000' d='M0 1h2v2H0zM1 0h4v1H1zM4 1h2v2H4zM3 3h2v1H3zM2 4h2v2H2zM2 7h2v2H2z'/%3E%3C/svg%3E");
+				background-position: center;
+			}
+			.befree-exact-dialog button.befree-exact-close {
+				background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='8' height='7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M0 0h2v1h1v1h2V1h1V0h2v1H7v1H6v1H5v1h1v1h1v1h1v1H6V6H5V5H3v1H2v1H0V6h1V5h1V4h1V3H2V2H1V1H0V0z' fill='%23000'/%3E%3C/svg%3E");
+				background-position: center;
+			}
+			.befree-exact-body {
+				margin: 8px;
+			}
+			.befree-exact-message-row {
+				align-items: flex-start;
+				display: flex;
+				gap: 14px;
+				padding: 8px 4px;
+			}
+			.befree-exact-message-row img {
+				flex-shrink: 0;
+				height: 32px;
+				image-rendering: pixelated;
+				width: 32px;
+			}
+			.befree-exact-message-row p {
+				color: #222;
+				line-height: 1.25;
+				margin: 0;
+				padding-top: 6px;
+			}
+			.befree-exact-form {
+				padding: 4px 4px 0;
+			}
+			.befree-exact-field {
+				align-items: center;
+				display: flex;
+				gap: 8px;
+				margin-bottom: 8px;
+			}
+			.befree-exact-field span {
+				color: #222;
+				white-space: nowrap;
+			}
+			.befree-exact-dialog input.befree-exact-input {
+				background: #fff !important;
+				border: none !important;
+				box-shadow:
+					inset -1px -1px #fff,
+					inset 1px 1px grey,
+					inset -2px -2px #dfdfdf,
+					inset 2px 2px #0a0a0a !important;
+				box-sizing: border-box !important;
+				color: #222 !important;
+				cursor: text;
+				font-family: "Pixelated MS Sans Serif", Arial, sans-serif !important;
+				font-size: 11px !important;
+				font-weight: 700 !important;
+				height: 21px !important;
+				line-height: 14px !important;
+				outline: none !important;
+				padding: 3px 4px !important;
+				width: 100% !important;
+				-webkit-font-smoothing: none;
+			}
+			.befree-exact-buttons {
+				display: flex;
+				gap: 6px;
+				justify-content: center;
+				padding: 4px 0;
+			}
+			.befree-exact-confirm-buttons {
+				padding: 8px 0 4px;
+			}
+			.befree-exact-dialog button.befree-exact-button {
+				appearance: none !important;
+				background: silver !important;
+				border: none !important;
+				border-image: none !important;
+				box-shadow:
+					inset -1px -1px #0a0a0a,
+					inset 1px 1px #fff,
+					inset -2px -2px grey,
+					inset 2px 2px #dfdfdf !important;
+				color: #222 !important;
+				cursor: pointer;
+				font-family: "Pixelated MS Sans Serif", Arial, sans-serif !important;
+				font-size: 11px !important;
+				font-weight: 700 !important;
+				line-height: 13px !important;
+				min-height: 23px !important;
+				min-width: 75px !important;
+				padding: 0 12px !important;
+				-webkit-font-smoothing: none;
+			}
+			.befree-exact-dialog button.befree-exact-button-default {
+				box-shadow:
+					inset -2px -2px #0a0a0a,
+					inset 1px 1px #0a0a0a,
+					inset 2px 2px #fff,
+					inset -3px -3px grey,
+					inset 3px 3px #dfdfdf !important;
+			}
+			.befree-exact-dialog button.befree-exact-button:disabled {
+				opacity: 0.5;
+			}
+			.befree-exact-consent {
+				color: #666;
+				font-size: 13px;
+				font-weight: 700;
+				line-height: 1.2;
+				margin: 8px auto 0;
+				max-width: 390px;
+				text-align: center;
+			}
+			.befree-exact-status {
+				color: #a41414;
+				display: none;
+				font-size: 11px;
+				font-weight: 700;
+				line-height: 1.25;
+				margin: 4px 4px 0;
+				text-align: center;
+			}
+		`;
+	}
+
+	_ensureFinalEmailDialogStyles(doc) {
+		if (!doc) return;
+		let style = doc.getElementById('befree-final-email-dialog-styles');
+		if (!style) {
+			style = doc.createElement('style');
+			style.id = 'befree-final-email-dialog-styles';
+			doc.head.appendChild(style);
+		}
+		style.textContent = `
+			@font-face {
+				font-family: "Pixelated MS Sans Serif";
+				font-style: normal;
+				font-weight: 400;
+				src:
+					url("/assets/win95/ms_sans_serif.woff2") format("woff2"),
+					url("/assets/win95/ms_sans_serif.woff") format("woff");
+			}
+			@font-face {
+				font-family: "Pixelated MS Sans Serif";
+				font-style: normal;
+				font-weight: 700;
+				src:
+					url("/assets/win95/ms_sans_serif_bold.woff2") format("woff2"),
+					url("/assets/win95/ms_sans_serif_bold.woff") format("woff");
+			}
+			.befree-final-email-dialog.window.os-window {
+				background: silver !important;
+				background-color: silver !important;
+				border: none !important;
+				border-image: none !important;
+				box-shadow:
+					inset -4px -4px #0a0a0a,
+					inset 4px 4px #fff,
+					inset -8px -8px #777,
+					inset 8px 8px #dfdfdf !important;
+				box-sizing: border-box !important;
+				color: #222 !important;
+				font-family: "Pixelated MS Sans Serif", Arial, sans-serif !important;
+				font-size: 17px !important;
+				font-weight: 700 !important;
+				padding: 6px !important;
+				-webkit-font-smoothing: none;
+			}
+			.befree-final-email-dialog .window-titlebar {
+				background: linear-gradient(90deg, navy, #1084d0) !important;
+				box-sizing: border-box !important;
+				color: #fff !important;
+				height: 32px !important;
+				min-height: 32px !important;
+				padding: 6px 5px 6px 7px !important;
+			}
+			.befree-final-email-dialog .window-title-area {
+				height: 20px !important;
+			}
+			.befree-final-email-dialog .window-title {
+				font-family: "Pixelated MS Sans Serif", Arial, sans-serif !important;
+				font-size: 15px !important;
+				font-weight: 700 !important;
+				line-height: 20px !important;
+				padding-left: 0 !important;
+				-webkit-font-smoothing: none;
+			}
+			.befree-final-email-dialog .window-button {
+				appearance: none !important;
+				background: silver !important;
+				border: none !important;
+				border-image: none !important;
+				box-shadow:
+					inset -2px -2px #0a0a0a,
+					inset 2px 2px #fff,
+					inset -4px -4px #777,
+					inset 4px 4px #dfdfdf !important;
+				color: #0a0a0a !important;
+				font-family: "Pixelated MS Sans Serif", Arial, sans-serif !important;
+				font-size: 15px !important;
+				font-weight: 700 !important;
+				height: 24px !important;
+				image-rendering: pixelated;
+				line-height: 20px !important;
+				margin: 0 0 0 2px !important;
+				min-height: 24px !important;
+				min-width: 28px !important;
+				padding: 0 !important;
+				text-align: center !important;
+				width: 28px !important;
+			}
+			.befree-final-email-dialog .befree-help-button,
+			.befree-final-email-dialog .window-close-button {
+				background-repeat: no-repeat !important;
+				color: transparent !important;
+				font-size: 0 !important;
+				overflow: hidden !important;
+				text-indent: -9999px !important;
+			}
+			.befree-final-email-dialog .befree-help-button {
+				background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='6' height='9' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23000' d='M0 1h2v2H0zM1 0h4v1H1zM4 1h2v2H4zM3 3h2v1H3zM2 4h2v2H2zM2 7h2v2H2z'/%3E%3C/svg%3E") !important;
+				background-position: top 2px left 5px !important;
+			}
+			.befree-final-email-dialog .window-close-button {
+				background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='8' height='7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M0 0h2v1h1v1h2V1h1V0h2v1H7v1H6v1H5v1h1v1h1v1h1v1H6V6H5V5H3v1H2v1H0V6h1V5h1V4h1V3H2V2H1V1H0V0z' fill='%23000'/%3E%3C/svg%3E") !important;
+				background-position: top 3px left 4px !important;
+			}
+			.befree-final-email-dialog .window-button-icon,
+			.befree-final-email-dialog .window-button-icon::before,
+			.befree-final-email-dialog .window-button-icon::after {
+				display: none !important;
+			}
+			.befree-final-email-dialog .dialog-content {
+				align-items: stretch !important;
+				background: silver !important;
+				display: block !important;
+				font-family: "Pixelated MS Sans Serif", Arial, sans-serif !important;
+				font-size: 17px !important;
+				font-weight: 700 !important;
+				padding: 0 !important;
+				-webkit-font-smoothing: none;
+			}
+			.befree-final-email-dialog .window-content {
+				background: silver !important;
+				display: block !important;
+				flex: 0 0 auto !important;
+			}
+		`;
 	}
 
 	_showFinalEmailDialog() {
@@ -458,6 +1097,7 @@ export default class Game {
 		if (typeof showDialog !== 'function') return;
 
 		const doc = window.parent.document || document;
+		this._ensureFinalEmailDialogStyles(doc);
 		const content = this._createFinalEmailDialogContent(doc);
 		const dialog = showDialog({
 			title: 'Attention: You chose tender.',
@@ -473,24 +1113,32 @@ export default class Game {
 
 	_createFinalEmailDialogContent(doc) {
 		const content = doc.createElement('div');
+		content.className = 'befree-final-email-dialog-body';
 		content.style.cssText = [
 			'display: grid',
-			'gap: 10px',
+			'gap: 0',
+			'margin: 18px',
 			'font-family: "Pixelated MS Sans Serif", Arial, sans-serif',
-			'font-size: 12px',
+			'font-size: 17px',
+			'font-weight: 700',
+			'line-height: 1.25',
+			'-webkit-font-smoothing: none',
+			'text-rendering: geometricPrecision',
 			'color: #222',
 		].join(';');
 
 		let dialog = null;
 		let emailValue = '';
 		const dialogLayouts = {
-			main: { contentWidth: 340, outerWidth: 400 },
-			confirm: { contentWidth: 320, outerWidth: 380, outerHeight: 128, gap: 8 },
-			complete: { contentWidth: 260, outerWidth: 330, outerHeight: 120, gap: 8 },
+			main: { contentWidth: 452, outerWidth: 500, gap: 0 },
+			confirm: { contentWidth: 452, outerWidth: 500, gap: 0 },
+			complete: { contentWidth: 390, outerWidth: 460, gap: 0 },
 		};
+		let currentLayout = dialogLayouts.main;
 		const applyDialogLayout = (layout) => {
+			currentLayout = layout;
 			content.style.width = `${layout.contentWidth}px`;
-			content.style.gap = `${layout.gap || 10}px`;
+			content.style.gap = `${layout.gap ?? 14}px`;
 			if (!dialog || typeof dialog.setDimensions !== 'function') return;
 			window.setTimeout(() => {
 				if (layout.outerHeight) {
@@ -520,6 +1168,23 @@ export default class Game {
 			const playSound = window.parent && window.parent.playSound;
 			if (typeof playSound === 'function') playSound('Default');
 		};
+		const ensureTitlebarHelpButton = () => {
+			const dialogEl = dialog && dialog[0];
+			const titlebar = dialogEl?.querySelector?.('.window-titlebar');
+			const closeButton = dialogEl?.querySelector?.('.window-close-button');
+			if (!titlebar || !closeButton || titlebar.querySelector('.befree-help-button')) return;
+			const helpButton = doc.createElement('button');
+			helpButton.type = 'button';
+			helpButton.className = 'window-button befree-help-button';
+			helpButton.setAttribute('aria-label', 'Help');
+			helpButton.tabIndex = -1;
+			helpButton.textContent = '';
+			helpButton.addEventListener('click', (event) => {
+				event.preventDefault();
+				playClick();
+			});
+			closeButton.before(helpButton);
+		};
 		const clear = () => {
 			while (content.firstChild) content.removeChild(content.firstChild);
 		};
@@ -528,24 +1193,37 @@ export default class Game {
 			button.type = 'button';
 			button.textContent = label;
 			button.style.cssText = [
-				'min-width: 78px',
-				'min-height: 23px',
+				'background: silver',
+				'border: none',
+				'box-shadow: inset -2px -2px #0a0a0a, inset 2px 2px #fff, inset -4px -4px #777, inset 4px 4px #dfdfdf',
+				'color: #222',
+				'cursor: pointer',
+				'font-family: "Pixelated MS Sans Serif", Arial, sans-serif',
+				'font-size: 16px',
+				'font-weight: 700',
+				'min-width: 112px',
+				'min-height: 40px',
+				'padding: 0 18px',
+				'-webkit-font-smoothing: none',
 			].join(';');
-			if (isDefault) button.classList.add('default');
+			if (isDefault) {
+				button.classList.add('default');
+				button.style.boxShadow = 'inset -3px -3px #0a0a0a, inset 2px 2px #0a0a0a, inset 4px 4px #fff, inset -5px -5px #777, inset 5px 5px #dfdfdf';
+			}
 			return button;
 		};
 		const makeMessageRow = (message) => {
 			const row = doc.createElement('div');
-			row.style.cssText = 'display: flex; align-items: flex-start; gap: 14px; padding: 4px 2px;';
+			row.style.cssText = 'display: flex; align-items: flex-start; gap: 14px; padding: 8px 4px;';
 			const icon = doc.createElement('img');
 			icon.src = '/assets/win95/warning_icon.png';
 			icon.alt = '';
-			icon.width = 32;
-			icon.height = 32;
+			icon.width = 54;
+			icon.height = 54;
 			icon.style.cssText = 'image-rendering: pixelated; flex-shrink: 0;';
 			const text = doc.createElement('p');
 			text.textContent = message;
-			text.style.cssText = 'margin: 0; padding-top: 7px; line-height: 1.35;';
+			text.style.cssText = 'margin: 0; padding-top: 6px; font-size: 17px; font-weight: 700; line-height: 1.25;';
 			row.append(icon, text);
 			return row;
 		};
@@ -555,11 +1233,12 @@ export default class Game {
 			content.appendChild(makeMessageRow('Do you allow yourself to move tenderly through the world?'));
 
 			const form = doc.createElement('form');
-			form.style.cssText = 'display: grid; gap: 8px;';
+			form.style.cssText = 'display: block; padding: 4px 4px 0;';
 			const fieldRow = doc.createElement('label');
-			fieldRow.style.cssText = 'display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px;';
+			fieldRow.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 8px;';
 			const labelText = doc.createElement('span');
 			labelText.textContent = 'Email:';
+			labelText.style.cssText = 'font-size: 17px; font-weight: 700; white-space: nowrap;';
 			const input = doc.createElement('input');
 			input.type = 'email';
 			input.required = true;
@@ -567,9 +1246,15 @@ export default class Game {
 			input.value = emailValue;
 			input.style.cssText = [
 				'width: 100%',
-				'height: 22px',
-				'padding: 2px 4px',
+				'height: 38px',
+				'padding: 6px 8px',
 				'box-sizing: border-box',
+				'border: none',
+				'box-shadow: inset -2px -2px #fff, inset 2px 2px #777, inset -4px -4px #dfdfdf, inset 4px 4px #0a0a0a',
+				'font-family: "Pixelated MS Sans Serif", Arial, sans-serif',
+				'font-size: 16px',
+				'font-weight: 700',
+				'outline: none',
 			].join(';');
 			input.addEventListener('input', () => {
 				emailValue = input.value;
@@ -578,7 +1263,7 @@ export default class Game {
 			form.appendChild(fieldRow);
 
 			const buttonRow = doc.createElement('div');
-			buttonRow.style.cssText = 'display: flex; justify-content: center; gap: 8px;';
+			buttonRow.style.cssText = 'display: flex; justify-content: center; gap: 6px; padding: 4px 0 4px;';
 			const submitButton = makeButton('Yes', true);
 			submitButton.type = 'submit';
 			const noButton = makeButton('No');
@@ -591,54 +1276,54 @@ export default class Game {
 
 			const consent = doc.createElement('p');
 			consent.textContent = 'By submitting your email, you agree to receive emails from me now and again. You may unsubscribe whenever you wish.';
-			consent.style.cssText = 'margin: 0; color: #555; font-size: 11px; line-height: 1.25; text-align: center;';
+			consent.style.cssText = 'margin: 8px auto 0; color: #666; font-size: 13px; font-weight: 700; line-height: 1.2; text-align: center; max-width: 390px;';
 			form.appendChild(consent);
 
-				const status = doc.createElement('p');
-				status.style.cssText = [
-					'visibility: hidden',
-					'min-height: 28px',
-					'margin: 0',
-					'color: #a41414',
-					'font-size: 11px',
-					'line-height: 1.25',
-					'text-align: center',
-				].join(';');
-				form.appendChild(status);
-				const setStatus = (message, color = '#555') => {
-					status.style.visibility = 'visible';
-					status.style.color = color;
-					status.textContent = message;
-					applyDialogLayout(dialogLayouts.main);
-				};
+			const status = doc.createElement('p');
+			status.style.cssText = [
+				'display: none',
+				'margin: 8px 4px 0',
+				'color: #a41414',
+				'font-size: 14px',
+				'font-weight: 700',
+				'line-height: 1.25',
+				'text-align: center',
+			].join(';');
+			form.appendChild(status);
+			const setStatus = (message, color = '#555') => {
+				status.style.display = 'block';
+				status.style.color = color;
+				status.textContent = message;
+				applyDialogLayout(dialogLayouts.main);
+			};
 
-				form.addEventListener('submit', async (event) => {
-					event.preventDefault();
-					playClick();
-					submitButton.disabled = true;
-					noButton.disabled = true;
-					setStatus('Sending...');
+			form.addEventListener('submit', async (event) => {
+				event.preventDefault();
+				playClick();
+				submitButton.disabled = true;
+				noButton.disabled = true;
+				setStatus('Sending...');
 
-					try {
-						const response = await fetch('/api/subscribe', {
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({ email: input.value, pathway: 'tender' }),
-						});
-						const result = await response.json().catch(() => null);
-						if (!response.ok) throw new Error(result?.error || `HTTP ${response.status}`);
-						renderComplete();
-					} catch (error) {
-						console.error('[BeFree] Email submission failed:', error);
-						submitButton.disabled = false;
-						noButton.disabled = false;
-						const fallbackMessage = 'Oops! Something went wrong while submitting the form.';
-						const message = error instanceof Error && error.message && !error.message.startsWith('HTTP ')
-							? error.message
-							: fallbackMessage;
-						setStatus(message === 'Failed to subscribe' ? fallbackMessage : message, '#a41414');
-					}
-				});
+				try {
+					const response = await fetch('/api/subscribe', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ email: input.value, pathway: 'tender' }),
+					});
+					const result = await response.json().catch(() => null);
+					if (!response.ok) throw new Error(result?.error || `HTTP ${response.status}`);
+					renderComplete();
+				} catch (error) {
+					console.error('[BeFree] Email submission failed:', error);
+					submitButton.disabled = false;
+					noButton.disabled = false;
+					const fallbackMessage = 'Oops! Something went wrong while submitting the form.';
+					const message = error instanceof Error && error.message && !error.message.startsWith('HTTP ')
+						? error.message
+						: fallbackMessage;
+					setStatus(message === 'Failed to subscribe' ? fallbackMessage : message, '#a41414');
+				}
+			});
 
 			content.appendChild(form);
 			window.setTimeout(() => input.focus(), 0);
@@ -648,7 +1333,7 @@ export default class Game {
 			applyDialogLayout(dialogLayouts.confirm);
 			content.appendChild(makeMessageRow("Are you sure you don't want my gift?"));
 			const buttonRow = doc.createElement('div');
-			buttonRow.style.cssText = 'display: flex; justify-content: center; gap: 8px;';
+			buttonRow.style.cssText = 'display: flex; justify-content: center; gap: 8px; padding: 8px 0 4px;';
 			const yesButton = makeButton('I want it', true);
 			yesButton.addEventListener('click', () => {
 				playClick();
@@ -667,7 +1352,7 @@ export default class Game {
 			applyDialogLayout(dialogLayouts.complete);
 			content.appendChild(makeMessageRow('Your gift is on its way.'));
 			const buttonRow = doc.createElement('div');
-			buttonRow.style.cssText = 'display: flex; justify-content: center;';
+			buttonRow.style.cssText = 'display: flex; justify-content: center; padding: 8px 0 4px;';
 			const okButton = makeButton('OK', true);
 			okButton.addEventListener('click', () => {
 				playClick();
@@ -680,7 +1365,14 @@ export default class Game {
 
 		content._bindDialog = (createdDialog) => {
 			dialog = createdDialog;
-		};
+				if (dialog && typeof dialog.addClass === 'function') {
+					dialog.addClass('befree-final-email-dialog');
+				} else if (dialog && dialog[0] && dialog[0].classList) {
+					dialog[0].classList.add('befree-final-email-dialog');
+				}
+				ensureTitlebarHelpButton();
+				applyDialogLayout(currentLayout);
+			};
 		renderMain();
 		return content;
 	}
