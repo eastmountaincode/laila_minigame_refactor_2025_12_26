@@ -78,6 +78,7 @@ export default class Skier {
 		this.skier_trick1_left = this.game.util.loadImage('./img/skier_trick1_left.png', this);
 		this.skier_trick1_right = this.game.util.loadImage('./img/skier_trick1_right.png', this);
 		this.skier_trick2 = this.game.util.loadImage('./img/skier_trick2.png', this);
+		this.befree_walk_down = this.game.util.loadImage('./img/befree_walk_down.png', this);
 	}
 
 	// Enter the walking (skis off) mode. World freezes entirely; the character drifts
@@ -100,6 +101,7 @@ export default class Skier {
 		this.yv = 0;
 		this._exitYOffset = 0;
 		this._walkFrameStart = this.game.util.timestamp();
+		this.currentImage = this.befree_walk_down || this._currentWalkImage();
 	}
 
 	// update the state of the skier
@@ -306,7 +308,7 @@ export default class Skier {
 		this.xv = 0;
 		this.yv = 0;
 		this._exitYOffset = (this._exitYOffset || 0) + this.game.WALKING_SPEED * step;
-		this.currentImage = this._currentWalkImage();
+		this.currentImage = this.befree_walk_down || this._currentWalkImage();
 		this.calculateCurrentSpeed();
 	}
 
@@ -599,6 +601,9 @@ export default class Skier {
 			break;
 		case this.skier_trick2:
 			xOffset = -6;
+			break;
+		case this.befree_walk_down:
+			xOffset = -Math.round(this.currentImage.width / 2);
 			break;
 		}
 		ctx.drawImage(this.currentImage, this.x + xOffset, this.y + (this._exitYOffset || 0) - this.jumpOffset);

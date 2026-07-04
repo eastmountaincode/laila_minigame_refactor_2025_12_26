@@ -202,7 +202,7 @@
 
     #hand-tuner-values {
       width: 100%;
-      height: 118px;
+      height: 190px;
       box-sizing: border-box;
       resize: none;
       border: 1px solid #808080;
@@ -260,10 +260,10 @@
     const canvasElement = document.getElementById("canvas");
     const pinballRootElement = document.getElementById("pinball-root");
     const handTunerElement = document.getElementById("hand-tuner");
-    const HAND_TUNER_STORAGE_KEY = "space-cadet-rescue-animation-tuner-v5";
+    const RESCUE_TUNING_URL = "./rescue-tuning.json";
     const HAND_TUNER_BASE_WIDTH = 642;
     const HAND_TUNER_BASE_HEIGHT = 525;
-    const PINBALL_RUNTIME_VERSION = "tender-rescue-20260607-7";
+    const PINBALL_RUNTIME_VERSION = "tender-rescue-20260704-10";
     const PINBALL_RUNTIME_BASE_WIDTH = 600;
     const PINBALL_RUNTIME_BASE_HEIGHT = 416;
     const HAND_TUNER_ASSET = "/assets/pinball-hands/hand_rescue_2.png";
@@ -316,36 +316,73 @@
       },
     };
 
-    const defaultHandTunerState = {
+    const fallbackHandTunerState = {
       frame1: {
-        left: { x: 160, y: 449, width: 48, height: 26, rotation: 17 },
-        right: { x: 329, y: 449, width: 48, height: 26, rotation: -17 },
+        left: { x: 135, y: 470, width: 48, height: 26, rotation: 19 },
+        right: { x: 206, y: 473, width: 48, height: 26, rotation: -17 },
       },
       frame2: {
         left: { x: 146, y: 459, width: 44, height: 37, rotation: 24 },
         right: { x: 204, y: 461, width: 39, height: 33, rotation: -24 },
       },
       frame3: {
-        left: { x: 154, y: 421, width: 43, height: 49, rotation: 58 },
-        right: { x: 220, y: 423, width: 43, height: 49, rotation: -58 },
+        left: { x: 152, y: 447, width: 41, height: 47, rotation: 23 },
+        right: { x: 199, y: 449, width: 42, height: 47, rotation: -25 },
       },
       frame4: {
-        left: { x: 166, y: 384, width: 42, height: 52, rotation: 86 },
-        right: { x: 217, y: 386, width: 42, height: 52, rotation: -86 },
+        left: { x: 157, y: 444, width: 42, height: 52, rotation: 24 },
+        right: { x: 191, y: 444, width: 42, height: 52, rotation: -16 },
       },
       frame5: {
-        left: { x: 158, y: 332, width: 58, height: 80, rotation: 180 },
-        right: { x: 207, y: 333, width: 61, height: 80, rotation: 180 },
+        left: { x: 186, y: 440, width: 38, height: 53, rotation: 180 },
+        right: { x: 168, y: 440, width: 41, height: 54, rotation: 180 },
       },
       frame6: {
-        left: { x: 158, y: 324, width: 58, height: 81, rotation: 180 },
-        right: { x: 203, y: 325, width: 68, height: 80, rotation: 180 },
+        left: { x: 185, y: 442, width: 36, height: 51, rotation: 180 },
+        right: { x: 173, y: 444, width: 40, height: 48, rotation: 180 },
       },
-      ballRest: { x: 214, y: 380 },
-      dangerZone: { x: 130, y: 355, width: 285, height: 140 },
+      ballRest: { x: 193, y: 467 },
+      dangerZone: { x: 101, y: 360, width: 216, height: 153 },
+      timing: {
+        safeHoldSeconds: 5,
+        releasePromptDelaySeconds: 5,
+        releaseMessageSeconds: 2,
+        releaseDropSeconds: 1.8,
+        releaseDropPx: 95,
+        positiveResponseSeconds: 3,
+        postCongratulationsSeconds: 2,
+        postCompletionCloseSeconds: 3,
+      },
+      messages: [
+        {
+          info: "I am holding you.\nYou are safe here.",
+          mission: "I can keep you safe.",
+        },
+        {
+          info: "I am trying to take care of you.\nYou have to stay.",
+          mission: "I can insulate you.",
+        },
+        {
+          info: "Okay.\nI am going to let you go.",
+          mission: "I am no longer going to protect you.",
+        },
+      ],
+      releaseMessage: {
+        info: "Okay.",
+        mission: "Letting go.",
+      },
+      releaseDialog: {
+        title: "Protection",
+        text: "How much should I hold on?",
+        sliderLabel: "Protection",
+        minLabel: "0",
+        maxLabel: "100",
+        buttonLabel: "Let go",
+      },
     };
 
-    let handTunerState = loadHandTunerState();
+    let sourceHandTunerState = cloneHandTunerState(fallbackHandTunerState);
+    let handTunerState = cloneHandTunerState(sourceHandTunerState);
     let handTunerActiveFrame = "frame2";
     let handTunerVisible = false;
     let handTunerSelectedSide = "left";
@@ -354,39 +391,114 @@
     let handTunerAnimationFrame = null;
     let handTunerDangerEditable = false;
     let handTunerRuntimePreviewActive = false;
+    let rescueTuningMessageSource = "fallback";
 
-    function loadHandTunerState() {
-      try {
-        const stored = window.localStorage.getItem(HAND_TUNER_STORAGE_KEY);
-        if (!stored) return JSON.parse(JSON.stringify(defaultHandTunerState));
-        const storedState = JSON.parse(stored);
-        const nextState = JSON.parse(JSON.stringify(defaultHandTunerState));
-        handTunerFrameOrder.forEach((frameId) => {
-          nextState[frameId] = {
-            ...nextState[frameId],
-            ...storedState[frameId],
-          };
-        });
-        nextState.ballRest = {
-          ...nextState.ballRest,
-          ...storedState.ballRest,
+    function cloneHandTunerState(state) {
+      return JSON.parse(JSON.stringify(state));
+    }
+
+    function mergeHandTunerState(state) {
+      const nextState = cloneHandTunerState(fallbackHandTunerState);
+      if (!state || typeof state !== "object") return nextState;
+
+      handTunerFrameOrder.forEach((frameId) => {
+        nextState[frameId] = {
+          ...nextState[frameId],
+          ...state[frameId],
         };
-        nextState.dangerZone = {
-          ...nextState.dangerZone,
-          ...storedState.dangerZone,
-        };
-        return nextState;
-      } catch {
-        return JSON.parse(JSON.stringify(defaultHandTunerState));
+      });
+
+      nextState.ballRest = {
+        ...nextState.ballRest,
+        ...state.ballRest,
+      };
+      nextState.dangerZone = {
+        ...nextState.dangerZone,
+        ...state.dangerZone,
+      };
+      nextState.timing = {
+        ...nextState.timing,
+        ...(state.timing || {}),
+      };
+      if (Array.isArray(state.messages)) {
+        nextState.messages = nextState.messages.map((message, index) => ({
+          ...message,
+          ...state.messages[index],
+        }));
+      }
+      nextState.releaseMessage = {
+        ...nextState.releaseMessage,
+        ...(state.releaseMessage || {}),
+      };
+      nextState.releaseDialog = {
+        ...nextState.releaseDialog,
+        ...(state.releaseDialog || {}),
+      };
+
+      return nextState;
+    }
+
+    function handTunerStateJson() {
+      return JSON.stringify(handTunerState, null, 2);
+    }
+
+    function validateRescueTuningConfig(config) {
+      if (!config || typeof config !== "object") {
+        throw new Error("rescue-tuning.json did not contain an object");
+      }
+      if (!Array.isArray(config.messages) || config.messages.length < 3) {
+        throw new Error("rescue-tuning.json must define three rescue message entries");
+      }
+      config.messages.slice(0, 3).forEach((message, index) => {
+        if (
+          !message ||
+          typeof message.info !== "string" ||
+          typeof message.mission !== "string" ||
+          !message.info.length ||
+          !message.mission.length
+        ) {
+          throw new Error(`rescue-tuning.json message ${index + 1} needs info and mission text`);
+        }
+      });
+      if (
+        !config.releaseMessage ||
+        typeof config.releaseMessage.info !== "string" ||
+        typeof config.releaseMessage.mission !== "string" ||
+        !config.releaseMessage.info.length ||
+        !config.releaseMessage.mission.length
+      ) {
+        throw new Error("rescue-tuning.json releaseMessage needs info and mission text");
+      }
+      if (
+        !config.releaseDialog ||
+        typeof config.releaseDialog.title !== "string" ||
+        typeof config.releaseDialog.text !== "string" ||
+        typeof config.releaseDialog.sliderLabel !== "string" ||
+        typeof config.releaseDialog.buttonLabel !== "string" ||
+        !config.releaseDialog.title.length ||
+        !config.releaseDialog.text.length ||
+        !config.releaseDialog.sliderLabel.length ||
+        !config.releaseDialog.buttonLabel.length
+      ) {
+        throw new Error("rescue-tuning.json releaseDialog needs title, text, sliderLabel, and buttonLabel");
       }
     }
 
-    function saveHandTunerState() {
-      window.localStorage.setItem(
-        HAND_TUNER_STORAGE_KEY,
-        JSON.stringify(handTunerState)
-      );
+    async function loadRescueTuningConfig() {
+      const response = await fetch(RESCUE_TUNING_URL, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const jsonConfig = await response.json();
+      validateRescueTuningConfig(jsonConfig);
+      rescueTuningMessageSource = RESCUE_TUNING_URL;
+      sourceHandTunerState = mergeHandTunerState(jsonConfig);
+      handTunerState = cloneHandTunerState(sourceHandTunerState);
       updateTenderRescueConfig();
+      if (handTunerVisible) renderHandTuner();
+    }
+
+    function applyHandTunerState() {
+      updateTenderRescueConfig();
+      updateHandTunerValues();
     }
 
     function updateTenderRescueConfig() {
@@ -408,6 +520,7 @@
       const config = {
         meta: {
           frameMs: HAND_TUNER_FRAME_MS,
+          messageSource: rescueTuningMessageSource,
         },
         frames: Object.fromEntries(
           handTunerFrameOrder.map((frameId) => [frameId, scaleFrame(handTunerState[frameId])])
@@ -421,6 +534,32 @@
           y: handTunerState.dangerZone.y * scaleY,
           width: handTunerState.dangerZone.width * scaleX,
           height: handTunerState.dangerZone.height * scaleY,
+        },
+        timing: {
+          safeHoldSeconds: handTunerState.timing.safeHoldSeconds,
+          releasePromptDelaySeconds: handTunerState.timing.releasePromptDelaySeconds,
+          releaseMessageSeconds: handTunerState.timing.releaseMessageSeconds,
+          releaseDropSeconds: handTunerState.timing.releaseDropSeconds,
+          releaseDropPx: handTunerState.timing.releaseDropPx,
+          positiveResponseSeconds: handTunerState.timing.positiveResponseSeconds,
+          postCongratulationsSeconds: handTunerState.timing.postCongratulationsSeconds,
+          postCompletionCloseSeconds: handTunerState.timing.postCompletionCloseSeconds,
+        },
+        messages: handTunerState.messages.map((message) => ({
+          info: message.info,
+          mission: message.mission,
+        })),
+        releaseMessage: {
+          info: handTunerState.releaseMessage.info,
+          mission: handTunerState.releaseMessage.mission,
+        },
+        releaseDialog: {
+          title: handTunerState.releaseDialog.title,
+          text: handTunerState.releaseDialog.text,
+          sliderLabel: handTunerState.releaseDialog.sliderLabel,
+          minLabel: handTunerState.releaseDialog.minLabel,
+          maxLabel: handTunerState.releaseDialog.maxLabel,
+          buttonLabel: handTunerState.releaseDialog.buttonLabel,
         },
       };
       window.tenderRescueConfig = config;
@@ -611,7 +750,7 @@
       panel.innerHTML = `
         <div id="hand-tuner-panel-title">Hand Animation Tuner</div>
         <div id="hand-tuner-panel-body">
-          <div>Switch frames, tune hands, drag/resize danger, drag ball target, then Copy for Codex.</div>
+          <div>Switch frames, tune hands, drag/resize danger, drag ball target, edit messages in rescue-tuning.json, then copy JSON.</div>
           <div class="hand-tuner-buttons">
             ${handTunerFrameOrder
               .map(
@@ -625,7 +764,7 @@
             <button type="button" data-action="play">Play Tuned</button>
             <button type="button" data-action="test-cradle" class="${isRuntimePreview ? "is-active" : ""}">${isRuntimePreview ? "Exit Test" : "Test Cradle"}</button>
             <button type="button" data-action="toggle-danger" class="${handTunerDangerEditable ? "is-active" : ""}">${handTunerDangerEditable ? "Lock Danger" : "Edit Danger"}</button>
-            <button type="button" data-action="copy">Copy Values</button>
+            <button type="button" data-action="copy">Copy JSON</button>
             <button type="button" data-action="reset">Reset Frame</button>
           </div>
         </div>
@@ -637,7 +776,7 @@
     function updateHandTunerValues() {
       const values = document.getElementById("hand-tuner-values");
       if (!values) return;
-      values.value = JSON.stringify(handTunerState, null, 2);
+      values.value = handTunerStateJson();
     }
 
     function setHandTunerVisible(visible) {
@@ -743,7 +882,7 @@
           x: Math.round(interaction.startBallRest.x + point.x - interaction.startPoint.x),
           y: Math.round(interaction.startBallRest.y + point.y - interaction.startPoint.y),
         };
-        saveHandTunerState();
+        applyHandTunerState();
         renderHandTuner();
         event.preventDefault();
         return;
@@ -755,7 +894,7 @@
           x: Math.round(interaction.startDangerZone.x + point.x - interaction.startPoint.x),
           y: Math.round(interaction.startDangerZone.y + point.y - interaction.startPoint.y),
         };
-        saveHandTunerState();
+        applyHandTunerState();
         renderHandTuner();
         event.preventDefault();
         return;
@@ -767,7 +906,7 @@
           width: Math.max(20, Math.round(interaction.startDangerZone.width + point.x - interaction.startPoint.x)),
           height: Math.max(20, Math.round(interaction.startDangerZone.height + point.y - interaction.startPoint.y)),
         };
-        saveHandTunerState();
+        applyHandTunerState();
         renderHandTuner();
         event.preventDefault();
         return;
@@ -803,7 +942,7 @@
       }
 
       handTunerState[interaction.frame][interaction.side] = nextHand;
-      saveHandTunerState();
+      applyHandTunerState();
       renderHandTuner();
       event.preventDefault();
     }
@@ -831,10 +970,12 @@
           handTunerDangerEditable = !handTunerDangerEditable;
           renderHandTuner();
         }
-        if (action === "copy") navigator.clipboard?.writeText(JSON.stringify(handTunerState, null, 2));
+        if (action === "copy") navigator.clipboard?.writeText(handTunerStateJson());
         if (action === "reset") {
-          handTunerState[handTunerActiveFrame] = JSON.parse(JSON.stringify(defaultHandTunerState[handTunerActiveFrame]));
-          saveHandTunerState();
+          handTunerState[handTunerActiveFrame] = cloneHandTunerState(
+            sourceHandTunerState[handTunerActiveFrame]
+          );
+          applyHandTunerState();
           renderHandTuner();
         }
         event.preventDefault();
@@ -875,11 +1016,22 @@
       event.preventDefault();
     });
 
-    updateTenderRescueConfig();
+    window.addEventListener("message", (event) => {
+      if (event.data?.type !== "tender-pinball-release") return;
+      if (typeof Module === "undefined") return;
+      Module.tenderRescueReleaseRequest = (Module.tenderRescueReleaseRequest || 0) + 1;
+    });
 
     function hideLoading() {
       loadingElement.classList.add("is-hidden");
       canvasElement.focus();
+    }
+
+    function loadPinballRuntime() {
+      const pinballRuntimeScript = document.createElement("script");
+      pinballRuntimeScript.async = true;
+      pinballRuntimeScript.src = "/win98-web/games/pinball/SpaceCadetPinball.js?v=" + PINBALL_RUNTIME_VERSION;
+      document.body.appendChild(pinballRuntimeScript);
     }
 
     var Module = {
@@ -922,6 +1074,7 @@
       tenderRescueConfig: window.tenderRescueConfig,
       tenderRescuePreviewRequest: 0,
       tenderRescuePreviewClearRequest: 0,
+      tenderRescueReleaseRequest: 0,
       monitorRunDependencies: function (left) {
         this.totalDependencies = Math.max(this.totalDependencies, left);
         Module.setStatus(
@@ -932,7 +1085,7 @@
       },
     };
 
-    Module.setStatus("Downloading...");
+    Module.setStatus("Loading rescue tuning...");
 
     window.onerror = function () {
       Module.setStatus("Exception thrown, see JavaScript console");
@@ -940,12 +1093,17 @@
         if (text) Module.printErr("[post-exception status] " + text);
       };
     };
-  </script>
-  <script>
-    const pinballRuntimeScript = document.createElement("script");
-    pinballRuntimeScript.async = true;
-    pinballRuntimeScript.src = "/win98-web/games/pinball/SpaceCadetPinball.js?v=" + PINBALL_RUNTIME_VERSION;
-    document.body.appendChild(pinballRuntimeScript);
+
+    loadRescueTuningConfig()
+      .then(() => {
+        Module.tenderRescueConfig = window.tenderRescueConfig;
+        Module.setStatus("Downloading...");
+        loadPinballRuntime();
+      })
+      .catch((error) => {
+        console.error("Failed to load rescue tuning config:", error);
+        Module.setStatus("Could not load rescue tuning.");
+      });
   </script>
 </body>
 </html>

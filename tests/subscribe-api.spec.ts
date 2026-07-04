@@ -19,7 +19,7 @@ test.describe('Subscribe API - Duplicate Prevention', () => {
     emailsToCleanup.push(testEmail);
 
     const response = await request.post('/api/subscribe', {
-      data: { email: testEmail },
+      data: { email: testEmail, pathway: 'tender' },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -33,12 +33,12 @@ test.describe('Subscribe API - Duplicate Prevention', () => {
 
     // First subscription
     await request.post('/api/subscribe', {
-      data: { email: testEmail },
+      data: { email: testEmail, pathway: 'tender' },
     });
 
     // Second subscription with same email
     const response = await request.post('/api/subscribe', {
-      data: { email: testEmail },
+      data: { email: testEmail, pathway: 'tender' },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -54,12 +54,12 @@ test.describe('Subscribe API - Duplicate Prevention', () => {
 
     // First subscription with lowercase
     await request.post('/api/subscribe', {
-      data: { email: testEmail.toLowerCase() },
+      data: { email: testEmail.toLowerCase(), pathway: 'tender' },
     });
 
     // Second subscription with uppercase
     const response = await request.post('/api/subscribe', {
-      data: { email: testEmail.toUpperCase() },
+      data: { email: testEmail.toUpperCase(), pathway: 'tender' },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -70,7 +70,7 @@ test.describe('Subscribe API - Duplicate Prevention', () => {
 
   test('should reject invalid email format', async ({ request }) => {
     const response = await request.post('/api/subscribe', {
-      data: { email: 'not-an-email' },
+      data: { email: 'not-an-email', pathway: 'tender' },
     });
 
     expect(response.status()).toBe(400);

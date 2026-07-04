@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>BeFree Sprite Tuner</title>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="stylesheet" href="./css/sprite-tuner.css" />
+	</head>
+	<body>
+		<header class="topbar">
+			<div>
+				<h1>BeFree Sprite Tuner</h1>
+				<p>Align Lylia's sprite page against the original SkiFree skier states.</p>
+			</div>
+			<div class="topbar-actions">
+				<span id="saveStatus" class="save-status">Auto-saved locally</span>
+				<a class="button" href="./index.html">Open Game</a>
+				<button id="copyJsonButton" type="button">Copy JSON</button>
+				<button id="downloadJsonButton" type="button">Download JSON</button>
+			</div>
+		</header>
+
+		<main class="layout">
+			<aside class="sprite-panel">
+				<div class="panel-heading">
+					<h2>Original Sprites</h2>
+					<span id="mappedSummary">0 mapped</span>
+				</div>
+				<div id="spriteList" class="sprite-list" aria-label="Original skier sprites"></div>
+			</aside>
+
+			<section class="workbench">
+				<div class="toolbar">
+					<label>
+						State
+						<select id="spriteSelect"></select>
+					</label>
+					<button id="prevSpriteButton" type="button">Previous</button>
+					<button id="nextSpriteButton" type="button">Next</button>
+					<label class="checkbox-label">
+						<input id="mappedCheckbox" type="checkbox" />
+						Ready
+					</label>
+				</div>
+
+				<div class="stage-grid">
+					<section class="stage-card">
+						<div class="section-heading">
+							<h2>Overlay Alignment</h2>
+							<span>Drag the new crop over the original sprite.</span>
+						</div>
+						<canvas id="stageCanvas" width="520" height="420"></canvas>
+						<div class="canvas-meta" id="stageMeta"></div>
+					</section>
+
+					<section class="stage-card">
+						<div class="section-heading">
+							<h2>New Sprite Crop</h2>
+							<span>Move or resize the crop box on the sprite page.</span>
+						</div>
+						<div class="sheet-tools">
+							<button data-sheet-zoom="out" type="button">Sheet -</button>
+							<button data-sheet-zoom="in" type="button">Sheet +</button>
+							<button id="centerCropButton" type="button">Center Crop</button>
+						</div>
+						<div id="sheetViewport" class="sheet-viewport">
+							<div id="sheetSurface" class="sheet-surface">
+								<img id="spriteSheetImage" src="./tuning/be-free-sprite-page.png" alt="BeFree sprite page" draggable="false" />
+								<div id="cropBox" class="crop-box" aria-label="Selected crop">
+									<span data-handle="nw"></span>
+									<span data-handle="ne"></span>
+									<span data-handle="sw"></span>
+									<span data-handle="se"></span>
+								</div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</section>
+
+			<aside class="control-panel">
+				<section>
+					<h2>Crop</h2>
+					<div class="form-grid">
+						<label>X <input id="cropXInput" type="number" step="1" /></label>
+						<label>Y <input id="cropYInput" type="number" step="1" /></label>
+						<label>W <input id="cropWInput" type="number" step="1" min="1" /></label>
+						<label>H <input id="cropHInput" type="number" step="1" min="1" /></label>
+					</div>
+					<canvas id="cropPreviewCanvas" width="160" height="160"></canvas>
+				</section>
+
+				<section>
+					<h2>Overlay</h2>
+					<div class="form-grid">
+						<label>X <input id="overlayXInput" type="number" step="0.1" /></label>
+						<label>Y <input id="overlayYInput" type="number" step="0.1" /></label>
+						<label>Scale <input id="overlayScaleInput" type="number" step="0.01" min="0.01" /></label>
+						<label>Opacity <input id="overlayOpacityInput" type="number" step="0.05" min="0" max="1" /></label>
+					</div>
+					<div class="button-row">
+						<button id="fitButton" type="button">Fit Size</button>
+						<button id="centerButton" type="button">Center Overlay</button>
+						<button id="resetButton" type="button">Reset</button>
+					</div>
+				</section>
+
+				<section>
+					<h2>View</h2>
+					<label>
+						Stage Zoom
+						<input id="stageZoomInput" type="range" min="4" max="18" step="1" />
+					</label>
+					<label>
+						Show Original
+						<input id="originalOpacityInput" type="range" min="0" max="1" step="0.05" />
+					</label>
+				</section>
+
+				<section>
+					<h2>Export</h2>
+					<textarea id="jsonOutput" spellcheck="false"></textarea>
+					<div class="button-row">
+						<button id="refreshJsonButton" type="button">Refresh</button>
+						<button id="importJsonButton" type="button">Import</button>
+					</div>
+				</section>
+			</aside>
+		</main>
+
+		<script src="./js/sprite-tuner.js" type="module"></script>
+	</body>
+</html>

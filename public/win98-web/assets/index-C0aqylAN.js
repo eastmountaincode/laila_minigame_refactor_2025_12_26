@@ -1,1 +1,0 @@
-import{AboutApp as p}from"./about-app-DFTAT1Ec.js";import"./main-DGxs7jnp.js";import"./xterm-BwRfFNjq.js";import"./xterm-BV-LBlTX.js";import"./zenfs-5S7w0OYW.js";async function m(o=null){return new p(p.config).launch(o)}export{m as launchAboutApp};

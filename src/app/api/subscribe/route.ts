@@ -4,7 +4,14 @@ import { isPathway } from "@/lib/pathways";
 import { sendPathwaySongEmail } from "@/lib/song-delivery";
 
 const SPREADSHEET_ID = process.env.GOOGLE_EMAILS_SPREADSHEET_ID!;
-const EMAIL_DELIVERY_MODE = process.env.EMAIL_DELIVERY_MODE ?? "sheet";
+
+function getEmailDeliveryMode() {
+  const mode = process.env.EMAIL_DELIVERY_MODE?.trim().toLowerCase() || "sheet";
+  if (mode !== "sheet" && mode !== "smtp") {
+    throw new Error(`Unsupported EMAIL_DELIVERY_MODE: ${mode}`);
+  }
+  return mode;
+}
 
 // In-memory store for dev mode (resets on server restart)
 const devModeEmails = new Set<string>();
@@ -38,6 +45,7 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.toLowerCase().trim();
     const subscriptionKey = `${normalizedEmail}:${pathway}`;
+    const emailDeliveryMode = getEmailDeliveryMode();
     let alreadySubscribed = false;
     let delivery: "sheet" | "smtp" = "sheet";
 
@@ -60,11 +68,9 @@ export async function POST(request: Request) {
       }
     }
 
-    if (EMAIL_DELIVERY_MODE === "smtp") {
+    if (emailDeliveryMode === "smtp") {
       await sendPathwaySongEmail(normalizedEmail, pathway);
       delivery = "smtp";
-    } else if (EMAIL_DELIVERY_MODE !== "sheet") {
-      throw new Error(`Unsupported EMAIL_DELIVERY_MODE: ${EMAIL_DELIVERY_MODE}`);
     }
 
     return NextResponse.json({

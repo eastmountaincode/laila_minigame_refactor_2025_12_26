@@ -56,20 +56,18 @@ export default class Game {
 			"Each tree a name you have forgotten.",
 			"The path closes behind you the moment you choose it.",
 		];
+		this.COMPLETION_SOUND_EVENT = 'SystemExit';
 		// Walking/exit cutscene tuning.
 		// Max speed cap while walking (skier uses normal mouse-based input, just slower).
 		this.WALKING_SPEED = 70;
 		// Forward world distance walked (matches HUD distance) before the exit cutscene
 		// kicks in.
 		this.WALKING_DISTANCE = 250;
-		// Pixels of skier render-offset (downward drift during exit cutscene) before the
-		// fade-to-black starts. At WALKING_SPEED=70 this is ~2.3s into the cutscene.
-		this.EXIT_FADE_START_OFFSET = 160;
-		this.EXIT_FADE_MS = 2000;          // fade-to-black duration after fade trigger
-		// Additional hold on a fully black screen after the fade completes, before the
-		// Game Over dialog appears.
-		this.GAME_OVER_DIALOG_DELAY_MS = 1500;
+		this.EXIT_TO_SUNSHINE_DELAY_MS = 5000;
+		this.SUNSHINE_FADE_MS = 1800;
 		this.getHTMLElements();
+		this.endingVideoObjectUrls = [];
+		this._preloadEndingVideos();
 		this.loadAssets();
 		this.darkModeOff();
 		this.init();
@@ -88,20 +86,14 @@ export default class Game {
 		this.yDist = 0;
 		this.wallModalShown = false;
 		this.firstCrashTime = null;
-		// 'skiing' → 'walking' (after "Take off your skis") → 'exit' (walks off-screen)
-		// → 'game-over' (fade done, modal showing).
+		// 'skiing' -> 'take-off-video' -> 'exit' -> 'sunshine-video'
+		// → 'game-over' (final email dialog showing).
 		this.mode = 'skiing';
 		this.walkDistance = 0;
 		this.fadeStartTime = null;
-		// Hide the fade overlay if a previous run left it visible — snap back, don't animate.
-		if (typeof document !== 'undefined') {
-			const fadeEl = document.getElementById('exit-fade');
-			if (fadeEl) {
-				fadeEl.style.transition = 'none';
-				fadeEl.classList.remove('active');
-				requestAnimationFrame(() => { fadeEl.style.transition = ''; });
-			}
-		}
+		this.exitStartTime = null;
+		this.endingSequenceStarted = false;
+		this._hideEndingVideo();
 		this.timestampFire = this.util.timestamp();
 		this.skierTrail = [];
 		this.currentTreeFireImg = this.tree_bare_fire1;
@@ -159,6 +151,9 @@ export default class Game {
 		this.gameInfoSpeed = document.getElementById('game-info-speed');
 		this.gameInfoStyle = document.getElementById('game-info-style');
 		this.offlineInd = document.getElementById('offline-ind');
+		this.endingVideoOverlay = document.getElementById('ending-video-overlay');
+		this.takeOffVideo = document.getElementById('take-off-video');
+		this.sunshineVideo = document.getElementById('sunshine-video');
 		navigator.onLine ? this.goOnline() : this.goOffline();
 	}
 
@@ -279,22 +274,166 @@ export default class Game {
 		this.skier.enterWalking();
 	}
 
-	// After walking a certain distance, the world freezes and the skier drifts off-screen.
+	_startTakeOffSequence() {
+		if (this.endingSequenceStarted) return;
+		this.endingSequenceStarted = true;
+		this.mode = 'take-off-video';
+		this._playEndingVideo(this.takeOffVideo)
+			.then(() => this._enterExitCutscene())
+			.catch((error) => {
+				console.warn('[BeFree] Take-off video failed:', error);
+				this._enterExitCutscene();
+			});
+	}
+
+	// After taking off the skis, input is locked and the character walks off-screen.
 	_enterExitCutscene() {
 		this.mode = 'exit';
+		this.exitStartTime = this.util.timestamp();
 		this.skier.enterExit();
 	}
 
-	// Skier has left the viewport — fade to black, then show the final dialog.
-	_startFadeToGameOver() {
+	// Skier has left the viewport — play the sunshine ending, then show the final dialog.
+	_startSunshineSequence() {
 		this.fadeStartTime = this.util.timestamp();
-		const fadeEl = document.getElementById('exit-fade');
-		if (fadeEl) {
-			fadeEl.style.transitionDuration = `${this.EXIT_FADE_MS}ms`;
-			fadeEl.classList.add('active');
+		this.mode = 'sunshine-video';
+		this._playEndingVideo(this.sunshineVideo, { holdLastFrame: true, fadeMs: this.SUNSHINE_FADE_MS })
+			.then(() => this._completeBeFreePathway())
+			.catch((error) => {
+				console.warn('[BeFree] Sunshine video failed:', error);
+				this._completeBeFreePathway();
+			});
+	}
+
+	_playEndingVideo(video, options = {}) {
+		return new Promise((resolve, reject) => {
+			if (!this.endingVideoOverlay || !video) {
+				reject(new Error('Ending video element is unavailable.'));
+				return;
+			}
+
+			const videos = [this.takeOffVideo, this.sunshineVideo].filter(Boolean);
+			for (const candidate of videos) {
+				candidate.pause();
+				candidate.classList.remove('active');
+			}
+			this.endingVideoOverlay.style.transitionDuration = options.fadeMs
+				? `${options.fadeMs}ms`
+				: '';
+
+			let finished = false;
+			let fallbackTimer = null;
+			const finish = () => {
+				if (finished) return;
+				finished = true;
+				window.clearTimeout(fallbackTimer);
+				video.removeEventListener('ended', finish);
+				video.removeEventListener('error', fail);
+				if (!options.holdLastFrame) {
+					video.pause();
+					video.classList.remove('active');
+					this.endingVideoOverlay.classList.remove('active');
+					this.endingVideoOverlay.style.transitionDuration = '';
+				}
+				resolve();
+			};
+			const fail = () => {
+				if (finished) return;
+				finished = true;
+				window.clearTimeout(fallbackTimer);
+				video.removeEventListener('ended', finish);
+				video.removeEventListener('error', fail);
+				video.pause();
+				video.classList.remove('active');
+				this.endingVideoOverlay.classList.remove('active');
+				this.endingVideoOverlay.style.transitionDuration = '';
+				reject(new Error('Video playback failed.'));
+			};
+
+			video.addEventListener('ended', finish);
+			video.addEventListener('error', fail);
+			this._ensureEndingVideoSource(video);
+			video.currentTime = 0;
+			if (options.fadeMs) {
+				this.endingVideoOverlay.classList.remove('active');
+				void this.endingVideoOverlay.offsetWidth;
+			}
+			video.classList.add('active');
+			this.endingVideoOverlay.classList.add('active');
+
+			const fallbackDuration = Number.isFinite(video.duration) && video.duration > 0
+				? video.duration * 1000 + 1000
+				: 12000;
+			fallbackTimer = window.setTimeout(finish, fallbackDuration);
+
+			const playPromise = video.play();
+			if (playPromise && typeof playPromise.catch === 'function') {
+				playPromise.catch(fail);
+			}
+		});
+	}
+
+	_preloadEndingVideos() {
+		for (const video of [this.takeOffVideo, this.sunshineVideo].filter(Boolean)) {
+			this._preloadEndingVideo(video);
 		}
-		setTimeout(() => this._showGameOverDialog(),
-			this.EXIT_FADE_MS + this.GAME_OVER_DIALOG_DELAY_MS);
+	}
+
+	_preloadEndingVideo(video) {
+		const source = video.dataset.src;
+		if (!source || video.dataset.preloadStarted === 'true') return;
+		video.dataset.preloadStarted = 'true';
+
+		fetch(source, { cache: 'force-cache' })
+			.then((response) => {
+				if (!response.ok) throw new Error(`HTTP ${response.status}`);
+				return response.blob();
+			})
+			.then((blob) => {
+				if (video.dataset.usingFallback === 'true') return;
+				const objectUrl = URL.createObjectURL(blob);
+				this.endingVideoObjectUrls.push(objectUrl);
+				video.src = objectUrl;
+				video.load();
+				video.dataset.preloaded = 'true';
+			})
+			.catch((error) => {
+				console.warn('[BeFree] Ending video preload failed:', source, error);
+			});
+	}
+
+	_ensureEndingVideoSource(video) {
+		if (video.currentSrc || video.getAttribute('src')) return;
+		const source = video.dataset.src;
+		if (!source) return;
+		video.dataset.usingFallback = 'true';
+		video.src = source;
+		video.load();
+	}
+
+	_hideEndingVideo() {
+		if (!this.endingVideoOverlay) return;
+		const videos = [this.takeOffVideo, this.sunshineVideo].filter(Boolean);
+		for (const video of videos) {
+			video.pause();
+			video.classList.remove('active');
+			try {
+				video.currentTime = 0;
+			} catch {}
+		}
+		this.endingVideoOverlay.classList.remove('active');
+		this.endingVideoOverlay.style.transitionDuration = '';
+	}
+
+	async _playParentSound(eventName) {
+		const playSound = window.parent && window.parent.playSound;
+		if (typeof playSound === 'function') {
+			try {
+				await playSound(eventName);
+			} catch (error) {
+				console.warn(`[BeFree] Failed to play ${eventName}:`, error);
+			}
+		}
 	}
 
 	// Close the BeFree $Window in the parent Win98 desktop. Same-origin iframe, so we can
@@ -308,21 +447,242 @@ export default class Game {
 		}
 	}
 
-	_showGameOverDialog() {
+	async _completeBeFreePathway() {
 		this.mode = 'game-over';
+		await this._playParentSound(this.COMPLETION_SOUND_EVENT);
+		this._showFinalEmailDialog();
+	}
+
+	_showFinalEmailDialog() {
 		const showDialog = window.parent && window.parent.ShowDialogWindow;
 		if (typeof showDialog !== 'function') return;
-		try { new Audio('/assets/win95/chord.wav').play().catch(() => {}); } catch {}
-		showDialog({
-			title: 'BeFree',
-			text: 'You are free.',
+
+		const doc = window.parent.document || document;
+		const content = this._createFinalEmailDialogContent(doc);
+		const dialog = showDialog({
+			title: 'Attention: You chose tender.',
+			content,
 			modal: true,
-			buttons: [{
-				label: 'OK',
-				isDefault: true,
-				action: () => this._closeBeFreeWindow(),
-			}],
+			buttons: [],
 		});
+		if (dialog && typeof dialog.onClosed === 'function') {
+			dialog.onClosed(() => this._closeBeFreeWindow());
+		}
+		content._bindDialog?.(dialog);
+	}
+
+	_createFinalEmailDialogContent(doc) {
+		const content = doc.createElement('div');
+		content.style.cssText = [
+			'display: grid',
+			'gap: 10px',
+			'font-family: "Pixelated MS Sans Serif", Arial, sans-serif',
+			'font-size: 12px',
+			'color: #222',
+		].join(';');
+
+		let dialog = null;
+		let emailValue = '';
+		const dialogLayouts = {
+			main: { contentWidth: 340, outerWidth: 400 },
+			confirm: { contentWidth: 320, outerWidth: 380, outerHeight: 128, gap: 8 },
+			complete: { contentWidth: 260, outerWidth: 330, outerHeight: 120, gap: 8 },
+		};
+		const applyDialogLayout = (layout) => {
+			content.style.width = `${layout.contentWidth}px`;
+			content.style.gap = `${layout.gap || 10}px`;
+			if (!dialog || typeof dialog.setDimensions !== 'function') return;
+			window.setTimeout(() => {
+				if (layout.outerHeight) {
+					dialog.setDimensions({
+						outerWidth: layout.outerWidth,
+						outerHeight: layout.outerHeight,
+					});
+				} else {
+					dialog.setDimensions({ outerWidth: layout.outerWidth });
+					const contentContainer = content.closest('.dialog-content');
+					if (contentContainer && dialog.$content && typeof dialog.outerHeight === 'function') {
+						const frameHeight = dialog.outerHeight() - dialog.$content.innerHeight();
+						dialog.outerHeight(contentContainer.offsetHeight + frameHeight);
+					}
+				}
+				if (typeof dialog.center === 'function') dialog.center();
+			}, 0);
+		};
+		const closeAll = () => {
+			if (dialog) {
+				dialog.close();
+			} else {
+				this._closeBeFreeWindow();
+			}
+		};
+		const playClick = () => {
+			const playSound = window.parent && window.parent.playSound;
+			if (typeof playSound === 'function') playSound('Default');
+		};
+		const clear = () => {
+			while (content.firstChild) content.removeChild(content.firstChild);
+		};
+		const makeButton = (label, isDefault = false) => {
+			const button = doc.createElement('button');
+			button.type = 'button';
+			button.textContent = label;
+			button.style.cssText = [
+				'min-width: 78px',
+				'min-height: 23px',
+			].join(';');
+			if (isDefault) button.classList.add('default');
+			return button;
+		};
+		const makeMessageRow = (message) => {
+			const row = doc.createElement('div');
+			row.style.cssText = 'display: flex; align-items: flex-start; gap: 14px; padding: 4px 2px;';
+			const icon = doc.createElement('img');
+			icon.src = '/assets/win95/warning_icon.png';
+			icon.alt = '';
+			icon.width = 32;
+			icon.height = 32;
+			icon.style.cssText = 'image-rendering: pixelated; flex-shrink: 0;';
+			const text = doc.createElement('p');
+			text.textContent = message;
+			text.style.cssText = 'margin: 0; padding-top: 7px; line-height: 1.35;';
+			row.append(icon, text);
+			return row;
+		};
+		const renderMain = () => {
+			clear();
+			applyDialogLayout(dialogLayouts.main);
+			content.appendChild(makeMessageRow('Do you allow yourself to move tenderly through the world?'));
+
+			const form = doc.createElement('form');
+			form.style.cssText = 'display: grid; gap: 8px;';
+			const fieldRow = doc.createElement('label');
+			fieldRow.style.cssText = 'display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px;';
+			const labelText = doc.createElement('span');
+			labelText.textContent = 'Email:';
+			const input = doc.createElement('input');
+			input.type = 'email';
+			input.required = true;
+			input.placeholder = 'enter your email';
+			input.value = emailValue;
+			input.style.cssText = [
+				'width: 100%',
+				'height: 22px',
+				'padding: 2px 4px',
+				'box-sizing: border-box',
+			].join(';');
+			input.addEventListener('input', () => {
+				emailValue = input.value;
+			});
+			fieldRow.append(labelText, input);
+			form.appendChild(fieldRow);
+
+			const buttonRow = doc.createElement('div');
+			buttonRow.style.cssText = 'display: flex; justify-content: center; gap: 8px;';
+			const submitButton = makeButton('Yes', true);
+			submitButton.type = 'submit';
+			const noButton = makeButton('No');
+			noButton.addEventListener('click', () => {
+				playClick();
+				renderConfirm();
+			});
+			buttonRow.append(submitButton, noButton);
+			form.appendChild(buttonRow);
+
+			const consent = doc.createElement('p');
+			consent.textContent = 'By submitting your email, you agree to receive emails from me now and again. You may unsubscribe whenever you wish.';
+			consent.style.cssText = 'margin: 0; color: #555; font-size: 11px; line-height: 1.25; text-align: center;';
+			form.appendChild(consent);
+
+				const status = doc.createElement('p');
+				status.style.cssText = [
+					'visibility: hidden',
+					'min-height: 28px',
+					'margin: 0',
+					'color: #a41414',
+					'font-size: 11px',
+					'line-height: 1.25',
+					'text-align: center',
+				].join(';');
+				form.appendChild(status);
+				const setStatus = (message, color = '#555') => {
+					status.style.visibility = 'visible';
+					status.style.color = color;
+					status.textContent = message;
+					applyDialogLayout(dialogLayouts.main);
+				};
+
+				form.addEventListener('submit', async (event) => {
+					event.preventDefault();
+					playClick();
+					submitButton.disabled = true;
+					noButton.disabled = true;
+					setStatus('Sending...');
+
+					try {
+						const response = await fetch('/api/subscribe', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ email: input.value, pathway: 'tender' }),
+						});
+						const result = await response.json().catch(() => null);
+						if (!response.ok) throw new Error(result?.error || `HTTP ${response.status}`);
+						renderComplete();
+					} catch (error) {
+						console.error('[BeFree] Email submission failed:', error);
+						submitButton.disabled = false;
+						noButton.disabled = false;
+						const fallbackMessage = 'Oops! Something went wrong while submitting the form.';
+						const message = error instanceof Error && error.message && !error.message.startsWith('HTTP ')
+							? error.message
+							: fallbackMessage;
+						setStatus(message === 'Failed to subscribe' ? fallbackMessage : message, '#a41414');
+					}
+				});
+
+			content.appendChild(form);
+			window.setTimeout(() => input.focus(), 0);
+		};
+		const renderConfirm = () => {
+			clear();
+			applyDialogLayout(dialogLayouts.confirm);
+			content.appendChild(makeMessageRow("Are you sure you don't want my gift?"));
+			const buttonRow = doc.createElement('div');
+			buttonRow.style.cssText = 'display: flex; justify-content: center; gap: 8px;';
+			const yesButton = makeButton('I want it', true);
+			yesButton.addEventListener('click', () => {
+				playClick();
+				renderMain();
+			});
+			const noButton = makeButton("Don't want");
+			noButton.addEventListener('click', () => {
+				playClick();
+				closeAll();
+			});
+			buttonRow.append(yesButton, noButton);
+			content.appendChild(buttonRow);
+		};
+		const renderComplete = () => {
+			clear();
+			applyDialogLayout(dialogLayouts.complete);
+			content.appendChild(makeMessageRow('Your gift is on its way.'));
+			const buttonRow = doc.createElement('div');
+			buttonRow.style.cssText = 'display: flex; justify-content: center;';
+			const okButton = makeButton('OK', true);
+			okButton.addEventListener('click', () => {
+				playClick();
+				closeAll();
+			});
+			buttonRow.appendChild(okButton);
+			content.appendChild(buttonRow);
+			window.setTimeout(() => okButton.focus(), 0);
+		};
+
+		content._bindDialog = (createdDialog) => {
+			dialog = createdDialog;
+		};
+		renderMain();
+		return content;
 	}
 
 	// Show the BeFree tree-wall dialog using the parent Win98 desktop's ShowDialogWindow
@@ -349,7 +709,7 @@ export default class Game {
 				buttons: [{
 					label: 'Take off your skis',
 					isDefault: true,
-					action: () => this._enterWalkingMode(),
+					action: () => this._startTakeOffSequence(),
 				}],
 			});
 		} else {
@@ -551,10 +911,11 @@ export default class Game {
 	update(now, step) {
 		let gamepadInfo = this.gamepad.update();
 		if (this.isPaused) return;
+		if (this.mode === 'take-off-video' || this.mode === 'sunshine-video') return;
 		this.currentTime = now;
 		this.skier.update(gamepadInfo, step);
 		// In skiing and walking modes the world scrolls, so run all of these. In exit /
-		// game-over the world is frozen — skip them to save a lot of CPU.
+		// game-over/video modes the world is frozen — skip them to save a lot of CPU.
 		const worldActive = this.mode === 'skiing' || this.mode === 'walking';
 		if (worldActive) {
 			this.lift.update(step);
@@ -602,12 +963,11 @@ export default class Game {
 			}
 		}
 
-		// Exit cutscene → start fade once the skier has walked far enough downward.
-		// We check the render offset, not skier.y: skier.y stays fixed so the world
-		// doesn't pan during the cutscene (see Skier._updateExit for why).
+		// Exit cutscene -> start sunshine after a fixed beat of auto-walking.
 		if (this.mode === 'exit' && this.fadeStartTime == null
-			&& (this.skier._exitYOffset || 0) > this.EXIT_FADE_START_OFFSET) {
-			this._startFadeToGameOver();
+			&& this.exitStartTime != null
+			&& now - this.exitStartTime >= this.EXIT_TO_SUNSHINE_DELAY_MS) {
+			this._startSunshineSequence();
 		}
 
 		// flip the tree-on-fire image back and forth to create flicker effect
