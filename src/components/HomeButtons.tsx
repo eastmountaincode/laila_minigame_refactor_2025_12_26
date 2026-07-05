@@ -14,7 +14,7 @@ import {
   PATHWAY_COMPLETION_EVENT,
   readCompletedPathways,
 } from "@/lib/pathway-completion";
-import { isPathway } from "@/lib/pathways";
+import { isPathway, type Pathway } from "@/lib/pathways";
 import { sounds } from "@/lib/sounds";
 
 const BUTTON_LAYOUT: Record<
@@ -151,7 +151,9 @@ export function HomeButtons({
   const [tenderOpen, setTenderOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [lockedPreviewKey, setLockedPreviewKey] = useState<string | null>(null);
-  const [completedPathways, setCompletedPathways] = useState(readCompletedPathways);
+  const [completedPathways, setCompletedPathways] = useState<Set<Pathway>>(
+    () => new Set()
+  );
 
   const handleTenderClose = useCallback(() => setTenderOpen(false), []);
   const handleCreditsClose = useCallback(() => setCreditsOpen(false), []);
