@@ -109,7 +109,6 @@ function PinballMobileControls({
       <PinballTouchButton label="Z" keyId="left" onKeyAction={onKeyAction} />
       <PinballTouchButton label="Space" keyId="launch" wide onKeyAction={onKeyAction} />
       <PinballTouchButton
-        caption="right flipper"
         label="/"
         keyId="right"
         onKeyAction={onKeyAction}
