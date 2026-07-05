@@ -457,7 +457,10 @@ export default class Game {
 	async _completeBeFreePathway() {
 		this.mode = 'game-over';
 		await this._wait(this.SUNSHINE_COMPLETION_DELAY_MS);
-		this._requestTopLevelFinalEmailDialog();
+		const handledTopLevel = await this._requestTopLevelFinalEmailDialog();
+		if (!handledTopLevel) {
+			this._showFinalEmailDialogExact();
+		}
 		void this._playParentSound(this.COMPLETION_SOUND_EVENT);
 	}
 

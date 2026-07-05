@@ -33,11 +33,13 @@ type PinballMobileAction = "down" | "up";
 
 function PinballTouchButton({
   label,
+  caption,
   keyId,
   wide = false,
   onKeyAction,
 }: {
   label: string;
+  caption?: string;
   keyId: PinballMobileKey;
   wide?: boolean;
   onKeyAction: (key: PinballMobileKey, action: PinballMobileAction) => void;
@@ -81,9 +83,10 @@ function PinballTouchButton({
         event.preventDefault();
         event.stopPropagation();
       }}
-      aria-label={label === "/" ? "Forward slash" : label}
+      aria-label={caption ? `${caption}: ${label}` : label === "/" ? "Forward slash" : label}
     >
-      {label}
+      <span>{label}</span>
+      {caption ? <span className="pinball-mobile-key-caption">{caption}</span> : null}
     </button>
   );
 }
@@ -105,7 +108,12 @@ function PinballMobileControls({
     >
       <PinballTouchButton label="Z" keyId="left" onKeyAction={onKeyAction} />
       <PinballTouchButton label="Space" keyId="launch" wide onKeyAction={onKeyAction} />
-      <PinballTouchButton label="/" keyId="right" onKeyAction={onKeyAction} />
+      <PinballTouchButton
+        caption="right flipper"
+        label="/"
+        keyId="right"
+        onKeyAction={onKeyAction}
+      />
     </div>
   );
 }
@@ -590,9 +598,10 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
       if (event.data?.type !== "tender:show-final-email-dialog") return;
       markPathwayComplete("tender");
       setFinalEmailOpen(true);
-      event.source?.postMessage(
+      const sourceWindow = event.source as Window | null;
+      sourceWindow?.postMessage(
         { type: "tender:final-email-dialog-shown", id: event.data.id },
-        { targetOrigin: event.origin }
+        event.origin
       );
     };
     window.addEventListener("message", handleMessage);
@@ -644,11 +653,22 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
           }
           .pinball-mobile-key:active {
             box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey;
             padding-top: 2px;
             padding-left: 2px;
+          }
+          .pinball-mobile-key-caption {
+            font-size: 9px;
+            font-weight: normal;
+            line-height: 1;
+            text-transform: uppercase;
           }
           .pinball-mobile-key-wide {
             font-size: 15px;
