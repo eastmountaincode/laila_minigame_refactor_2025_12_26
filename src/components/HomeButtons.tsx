@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useCallback, type CSSProperties } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  type CSSProperties,
+} from "react";
 import Image from "next/image";
 import { ChoiceTile } from "@/components/ChoiceTile";
 import { CreditsModal } from "@/components/CreditsModal";
 import { TenderOSModal } from "@/components/TenderOSModal";
+import {
+  PATHWAY_COMPLETION_EVENT,
+  readCompletedPathways,
+} from "@/lib/pathway-completion";
+import { isPathway } from "@/lib/pathways";
 import { sounds } from "@/lib/sounds";
 
 const BUTTON_LAYOUT: Record<
@@ -83,6 +93,7 @@ const MOBILE_MAX_SCALE = 0.62;
 const MOBILE_IMAGE_POSITION_CLASS =
   "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2";
 const MOBILE_IMAGE_BASE_CLASS = `${MOBILE_IMAGE_POSITION_CLASS} h-full w-full object-contain`;
+const COMPLETION_MARKER_SRC = "/assets/gifcities/checked-checkbox.png";
 
 function mobileScaledSize(value: number) {
   return `clamp(${Math.round(value * MOBILE_MIN_SCALE)}px, ${(
@@ -112,6 +123,27 @@ function getMobileHoverImageStyle(
   };
 }
 
+function CompletionMarker({ isMobile }: { isMobile: boolean }) {
+  return (
+    <span
+      className={[
+        "pathway-completion-marker pointer-events-none absolute z-20 drop-shadow-[1px_1px_0_rgba(0,0,0,0.8)]",
+        isMobile ? "-right-2 -bottom-2" : "-right-3 -bottom-3",
+      ].join(" ")}
+      aria-hidden="true"
+    >
+      <Image
+        src={COMPLETION_MARKER_SRC}
+        alt=""
+        width={isMobile ? 40 : 56}
+        height={isMobile ? 40 : 56}
+        unoptimized
+        style={{ imageRendering: "pixelated" }}
+      />
+    </span>
+  );
+}
+
 export function HomeButtons({
   buttons,
   unlockPathways = false,
@@ -119,6 +151,7 @@ export function HomeButtons({
   const [tenderOpen, setTenderOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [lockedPreviewKey, setLockedPreviewKey] = useState<string | null>(null);
+  const [completedPathways, setCompletedPathways] = useState(readCompletedPathways);
 
   const handleTenderClose = useCallback(() => setTenderOpen(false), []);
   const handleCreditsClose = useCallback(() => setCreditsOpen(false), []);
@@ -130,10 +163,28 @@ export function HomeButtons({
   const desktopButtons = sortButtons(buttons, DESKTOP_BUTTON_ORDER);
   const mobileButtons = sortButtons(buttons, MOBILE_BUTTON_ORDER);
 
+  useEffect(() => {
+    const refreshCompletedPathways = () => {
+      setCompletedPathways(readCompletedPathways());
+    };
+
+    refreshCompletedPathways();
+    window.addEventListener(PATHWAY_COMPLETION_EVENT, refreshCompletedPathways);
+    window.addEventListener("storage", refreshCompletedPathways);
+    return () => {
+      window.removeEventListener(
+        PATHWAY_COMPLETION_EVENT,
+        refreshCompletedPathways
+      );
+      window.removeEventListener("storage", refreshCompletedPathways);
+    };
+  }, []);
+
   const renderButton = (button: ButtonData, isMobile: boolean) => {
     const key = button.label?.trim().toLowerCase();
     const layout = BUTTON_LAYOUT[key];
     if (!layout) return null;
+    const isCompleted = isPathway(key) && completedPathways.has(key);
     const href =
       unlockPathways && key === "anger"
         ? `${button.href}?debug=pathways`
@@ -143,6 +194,11 @@ export function HomeButtons({
       width: mobileScaledSize(layout.desktopWidth),
       height: mobileScaledSize(layout.desktopHeight),
     };
+    const desktopTileStyle: CSSProperties = {
+      width: layout.desktopWidth,
+      height: layout.desktopHeight,
+    };
+    const tileStyle = isMobile ? mobileTileStyle : desktopTileStyle;
     const mobileHoverImageClass = layout.mobileHoverWidthScale
       ? `${MOBILE_IMAGE_POSITION_CLASS} h-auto max-w-none`
       : MOBILE_IMAGE_BASE_CLASS;
@@ -182,7 +238,7 @@ export function HomeButtons({
             className={lockedClassName}
             onClick={(event) => event.preventDefault()}
             onTouchStart={handleLockedTouchStart}
-            style={isMobile ? mobileTileStyle : undefined}
+            style={tileStyle}
           >
             {isMobile ? (
               <>
@@ -226,6 +282,7 @@ export function HomeButtons({
                 />
               </>
             )}
+            {isCompleted && <CompletionMarker isMobile={isMobile} />}
           </button>
         </div>
       );
@@ -247,7 +304,7 @@ export function HomeButtons({
             ]
               .filter(Boolean)
               .join(" ")}
-            style={isMobile ? mobileTileStyle : undefined}
+            style={tileStyle}
           >
             {isMobile ? (
               <>
@@ -291,6 +348,7 @@ export function HomeButtons({
                 />
               </>
             )}
+            {isCompleted && <CompletionMarker isMobile={isMobile} />}
           </button>
         </div>
       );
@@ -323,6 +381,7 @@ export function HomeButtons({
               ].join(" ")}
               style={mobileHoverImageStyle}
             />
+            {isCompleted && <CompletionMarker isMobile />}
           </ChoiceTile>
         </div>
       );
@@ -334,6 +393,7 @@ export function HomeButtons({
           href={href}
           ariaLabel={button.label}
           className="group"
+          style={desktopTileStyle}
         >
           <Image
             src={button.defaultImageUrl}
@@ -358,6 +418,7 @@ export function HomeButtons({
             unoptimized
             priority
           />
+          {isCompleted && <CompletionMarker isMobile={false} />}
         </ChoiceTile>
       </div>
     );

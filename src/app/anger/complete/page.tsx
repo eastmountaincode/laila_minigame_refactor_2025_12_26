@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { markPathwayComplete } from "@/lib/pathway-completion";
 
 const WIN95_FONT = `"Pixelated MS Sans Serif", Arial, sans-serif`;
 
@@ -25,6 +26,10 @@ export default function AngerCompletePage() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    markPathwayComplete("anger");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

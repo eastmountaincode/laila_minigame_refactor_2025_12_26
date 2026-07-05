@@ -1,6 +1,8 @@
 export const CREDITS_BACKGROUND_IMAGE = "/images/post-it-note.png";
 export const LYLIA_IMAGE = "/images/laila_face_pic_hands.png";
 export const LAILA_NAME_IMAGE = "/images/laila-smith-text-for-credits.png";
+export const PATHWAY_COMPLETION_MARKER_IMAGE =
+  "/assets/gifcities/checked-checkbox.png";
 
 export const TENDER_VIDEO_PRELOAD_ASSETS = [
   "/win98-web/games/skifree/video/be-free-animation.mp4",
@@ -11,6 +13,7 @@ export const HOME_STATIC_PRELOAD_ASSETS = [
   CREDITS_BACKGROUND_IMAGE,
   LYLIA_IMAGE,
   LAILA_NAME_IMAGE,
+  PATHWAY_COMPLETION_MARKER_IMAGE,
   ...TENDER_VIDEO_PRELOAD_ASSETS,
   "/fonts/pyxis-regular.ttf",
   "/assets/webflow/fonts/Apple Chancery.ttf",

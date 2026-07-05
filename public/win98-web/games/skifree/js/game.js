@@ -62,10 +62,10 @@ export default class Game {
 		// Keep win98-web/public/games/skifree/js/game.js synced when tuning.
 		// Max speed cap while walking (skier uses normal mouse-based input, just slower).
 		this.WALKING_SPEED = 70;
-		// Forward world distance walked (matches HUD distance) before the exit cutscene
-		// kicks in.
+		// Legacy controlled-walking distance. The current take-off flow enters the exit
+		// cutscene directly, so tune EXIT_TO_SUNSHINE_DELAY_MS for the sunshine timing.
 		this.WALKING_DISTANCE = 200;
-		this.EXIT_TO_SUNSHINE_DELAY_MS = 4300;
+		this.EXIT_TO_SUNSHINE_DELAY_MS = 5200;
 		this.SUNSHINE_FADE_MS = 1800;
 		this.SUNSHINE_COMPLETION_DELAY_MS = 0;
 		this.getHTMLElements();
@@ -89,7 +89,7 @@ export default class Game {
 		this.yDist = 0;
 		this.wallModalShown = false;
 		this.firstCrashTime = null;
-		// 'skiing' -> 'take-off-video' -> 'exit' -> 'sunshine-video'
+		// 'skiing' -> 'take-off-video' -> 'exit'
 		// → 'game-over' (final email dialog showing).
 		this.mode = 'skiing';
 		this.walkDistance = 0;
@@ -296,10 +296,10 @@ export default class Game {
 		this.skier.enterExit();
 	}
 
-	// Skier has left the viewport — play the sunshine ending, then show the final dialog.
+	// Fade the sunshine ending over the still-running exit walk, then show the final dialog.
 	_startSunshineSequence() {
+		if (this.fadeStartTime != null) return;
 		this.fadeStartTime = this.util.timestamp();
-		this.mode = 'sunshine-video';
 		this._playEndingVideo(this.sunshineVideo, { holdLastFrame: true, fadeMs: this.SUNSHINE_FADE_MS })
 			.then(() => this._completeBeFreePathway())
 			.catch((error) => {
@@ -457,8 +457,41 @@ export default class Game {
 	async _completeBeFreePathway() {
 		this.mode = 'game-over';
 		await this._wait(this.SUNSHINE_COMPLETION_DELAY_MS);
-		this._showFinalEmailDialogExact();
+		this._requestTopLevelFinalEmailDialog();
 		void this._playParentSound(this.COMPLETION_SOUND_EVENT);
+	}
+
+	_requestTopLevelFinalEmailDialog() {
+		const topWindow = window.top;
+		if (!topWindow || topWindow === window) return Promise.resolve(false);
+
+		return new Promise((resolve) => {
+			const id = `befree-final-email-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+			let settled = false;
+			let fallbackTimer = null;
+
+			const settle = (handled) => {
+				if (settled) return;
+				settled = true;
+				window.clearTimeout(fallbackTimer);
+				window.removeEventListener('message', handleMessage);
+				resolve(handled);
+			};
+			const handleMessage = (event) => {
+				if (event.origin !== window.location.origin) return;
+				if (event.source !== topWindow) return;
+				if (event.data?.type !== 'tender:final-email-dialog-shown') return;
+				if (event.data?.id !== id) return;
+				settle(true);
+			};
+
+			window.addEventListener('message', handleMessage);
+			fallbackTimer = window.setTimeout(() => settle(false), 350);
+			topWindow.postMessage(
+				{ type: 'tender:show-final-email-dialog', id },
+				window.location.origin
+			);
+		});
 	}
 
 	_showFinalEmailDialogExact() {
