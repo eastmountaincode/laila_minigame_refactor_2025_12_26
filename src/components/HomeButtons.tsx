@@ -161,6 +161,10 @@ export function HomeButtons({
     sounds.click();
     setCreditsOpen(true);
   }, []);
+  const handleTenderOpen = useCallback(() => {
+    sounds.tenderStartup.prime();
+    setTenderOpen(true);
+  }, []);
 
   const desktopButtons = sortButtons(buttons, DESKTOP_BUTTON_ORDER);
   const mobileButtons = sortButtons(buttons, MOBILE_BUTTON_ORDER);
@@ -300,7 +304,8 @@ export function HomeButtons({
           <button
             type="button"
             aria-label={button.label}
-            onClick={() => setTenderOpen(true)}
+            onPointerDown={() => sounds.tenderStartup.prime()}
+            onClick={handleTenderOpen}
             className={[
               "group relative block cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400",
             ]
@@ -470,7 +475,9 @@ export function HomeButtons({
       <CreditsModal isOpen={creditsOpen} onClose={handleCreditsClose} />
 
       {/* Tender OS Modal */}
-      <TenderOSModal isOpen={tenderOpen} onClose={handleTenderClose} />
+      {tenderOpen && (
+        <TenderOSModal isOpen={tenderOpen} onClose={handleTenderClose} />
+      )}
     </>
   );
 }

@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { markPathwayComplete } from "@/lib/pathway-completion";
+import { sounds } from "@/lib/sounds";
 
 const CLOSE_ICON = `url("data:image/svg+xml;charset=utf-8,%3Csvg width='8' height='7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M0 0h2v1h1v1h2V1h1V0h2v1H7v1H6v1H5v1h1v1h1v1h1v1H6V6H5V5H3v1H2v1H0V6h1V5h1V4h1V3H2V2H1V1H0V0z' fill='%23000'/%3E%3C/svg%3E")`;
 const HELP_ICON = `url("data:image/svg+xml;charset=utf-8,%3Csvg width='6' height='9' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23000' d='M0 1h2v2H0zM1 0h4v1H1zM4 1h2v2H4zM3 3h2v1H3zM2 4h2v2H2zM2 7h2v2H2z'/%3E%3C/svg%3E")`;
@@ -567,13 +568,6 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
     return () => window.removeEventListener("resize", updateScale);
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setFinalEmailOpen(false);
-      setPinballControlsVisible(false);
-    }
-  }, [isOpen]);
-
   // Escape key to close
   useEffect(() => {
     if (!isOpen) return;
@@ -591,6 +585,11 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
 
       if (event.data?.type === "tender:pinball-mobile-controls") {
         setPinballControlsVisible(Boolean(event.data.visible));
+        return;
+      }
+
+      if (event.data?.type === "tender:play-startup-sound") {
+        sounds.tenderStartup.play(event.data.soundUrl);
         return;
       }
 

@@ -1,4 +1,7 @@
 const cache = new Map<string, HTMLAudioElement>();
+const TENDER_STARTUP_FALLBACK_SRC =
+  "/win98-web/assets/The Microsoft Sound-CnfsYV00.wav";
+let tenderStartupAudio: HTMLAudioElement | null = null;
 
 type WebAudioWindow = typeof window & {
   webkitAudioContext?: typeof AudioContext;
@@ -18,6 +21,61 @@ function play(src: string) {
   const audio = preload(src);
   const clone = audio.cloneNode() as HTMLAudioElement;
   clone.play().catch(() => {});
+}
+
+function resolveTenderStartupSrc(src?: string | null) {
+  return src || TENDER_STARTUP_FALLBACK_SRC;
+}
+
+function resetAudio(audio: HTMLAudioElement) {
+  try {
+    audio.currentTime = 0;
+  } catch {}
+}
+
+function getTenderStartupAudio(src?: string | null) {
+  const resolvedSrc = resolveTenderStartupSrc(src);
+  const absoluteSrc =
+    typeof window === "undefined"
+      ? resolvedSrc
+      : new URL(resolvedSrc, window.location.href).href;
+  if (!tenderStartupAudio || tenderStartupAudio.src !== absoluteSrc) {
+    tenderStartupAudio = preload(resolvedSrc);
+  }
+  return tenderStartupAudio;
+}
+
+function primeTenderStartup(src?: string | null) {
+  if (typeof window === "undefined") return;
+
+  const audio = getTenderStartupAudio(src);
+  audio.preload = "auto";
+  audio.muted = true;
+  audio.volume = 0;
+  resetAudio(audio);
+
+  audio
+    .play()
+    .then(() => {
+      audio.pause();
+      resetAudio(audio);
+    })
+    .catch(() => {})
+    .finally(() => {
+      audio.muted = false;
+      audio.volume = 1;
+    });
+}
+
+function playTenderStartup(src?: string | null) {
+  const audio = getTenderStartupAudio(src);
+  audio.pause();
+  resetAudio(audio);
+  audio.muted = false;
+  audio.volume = 1;
+  audio.play().catch(() => {
+    play(resolveTenderStartupSrc(src));
+  });
 }
 
 if (typeof window !== "undefined") {
@@ -250,4 +308,8 @@ export const dragPad = new DragPad();
 export const sounds = {
   click: () => play("/assets/win95/click.mp3"),
   chord: () => play("/assets/win95/chord.wav"),
+  tenderStartup: {
+    prime: primeTenderStartup,
+    play: playTenderStartup,
+  },
 };
