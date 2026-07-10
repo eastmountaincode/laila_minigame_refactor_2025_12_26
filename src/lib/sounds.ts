@@ -1,7 +1,12 @@
 const cache = new Map<string, HTMLAudioElement>();
 const TENDER_STARTUP_FALLBACK_SRC =
   "/win98-web/assets/The Microsoft Sound-CnfsYV00.wav";
+const TENDER_STARTUP_UNLOCK_SRC =
+  "data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA==";
 let tenderStartupAudio: HTMLAudioElement | null = null;
+let tenderStartupUnlockAudio: HTMLAudioElement | null = null;
+let tenderStartupPrimed = false;
+let tenderStartupPrimePromise: Promise<void> | null = null;
 
 type WebAudioWindow = typeof window & {
   webkitAudioContext?: typeof AudioContext;
@@ -45,29 +50,42 @@ function getTenderStartupAudio(src?: string | null) {
   return tenderStartupAudio;
 }
 
-function primeTenderStartup(src?: string | null) {
-  if (typeof window === "undefined") return;
+function getTenderStartupUnlockAudio() {
+  if (!tenderStartupUnlockAudio) {
+    tenderStartupUnlockAudio = new Audio(TENDER_STARTUP_UNLOCK_SRC);
+    tenderStartupUnlockAudio.preload = "auto";
+  }
+  return tenderStartupUnlockAudio;
+}
 
-  const audio = getTenderStartupAudio(src);
-  audio.preload = "auto";
+function primeTenderStartup() {
+  if (typeof window === "undefined") return;
+  if (tenderStartupPrimed || tenderStartupPrimePromise) return;
+
+  const audio = getTenderStartupUnlockAudio();
   audio.muted = true;
   audio.volume = 0;
   resetAudio(audio);
 
-  audio
+  tenderStartupPrimePromise = audio
     .play()
     .then(() => {
+      tenderStartupPrimed = true;
       audio.pause();
       resetAudio(audio);
     })
     .catch(() => {})
     .finally(() => {
-      audio.muted = false;
-      audio.volume = 1;
+      audio.pause();
+      resetAudio(audio);
+      audio.muted = true;
+      audio.volume = 0;
+      tenderStartupPrimePromise = null;
     });
 }
 
 function playTenderStartup(src?: string | null) {
+  tenderStartupUnlockAudio?.pause();
   const audio = getTenderStartupAudio(src);
   audio.pause();
   resetAudio(audio);
