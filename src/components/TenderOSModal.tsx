@@ -28,6 +28,7 @@ interface TenderOSModalProps {
 const SCALE_BREAKPOINT = 700;
 const MIN_IFRAME_WIDTH = 800;
 const TENDER_OS_SRC = "/win98-web/index.html?v=ie-home-2026-05-01";
+const TENDER_COMPLETION_SOUND = "/win98-web/assets/TADA-DmUIAu8f.WAV";
 type FinalEmailView = "main" | "confirm" | "complete";
 type PinballMobileKey = "left" | "launch" | "right";
 type PinballMobileAction = "down" | "up";
@@ -143,10 +144,12 @@ function PinballMobileControls({
 function TenderFinalEmailDialog({
   isOpen,
   onClose,
+  onDecline,
   onComplete,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  onDecline: () => void;
   onComplete: () => void;
 }) {
   const [email, setEmail] = useState("");
@@ -496,7 +499,7 @@ function TenderFinalEmailDialog({
                   className="win95-btn"
                   onClick={() => {
                     playClick();
-                    onComplete();
+                    onDecline();
                   }}
                   style={dialogBtnStyle}
                 >
@@ -557,22 +560,55 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
   const [finalEmailOpen, setFinalEmailOpen] = useState(false);
   const [pinballControlsVisible, setPinballControlsVisible] = useState(false);
   const tenderIframeRef = useRef<HTMLIFrameElement>(null);
+  const finalEmailSourceRef = useRef<Window | null>(null);
 
   const handleClose = useCallback(() => {
     setLoaded(false);
     setFinalEmailOpen(false);
     setPinballControlsVisible(false);
+    finalEmailSourceRef.current = null;
     onClose();
   }, [onClose]);
 
+  const handleFinalEmailDecline = useCallback(() => {
+    setFinalEmailOpen(false);
+    finalEmailSourceRef.current?.postMessage(
+      { type: "tender:close-befree" },
+      window.location.origin
+    );
+    finalEmailSourceRef.current = null;
+    void sounds.tenderSystem.play(TENDER_COMPLETION_SOUND);
+  }, []);
+
+  const resumePinballAudio = useCallback(() => {
+    try {
+      const osDocument = tenderIframeRef.current?.contentDocument;
+      const pinballIframe = osDocument?.querySelector<HTMLIFrameElement>(
+        'iframe[src*="games/pinball/"]'
+      );
+      const pinballWindow = pinballIframe?.contentWindow as
+        | (Window & {
+            Module?: { SDL2?: { audioContext?: AudioContext } };
+          })
+        | null;
+      const audioContext = pinballWindow?.Module?.SDL2?.audioContext;
+      if (audioContext?.state === "suspended") {
+        void audioContext.resume();
+      }
+    } catch (error) {
+      console.warn("[tender-audio] Could not resume Pinball audio.", error);
+    }
+  }, []);
+
   const postPinballMobileKey = useCallback(
     (key: PinballMobileKey, action: PinballMobileAction) => {
+      resumePinballAudio();
       tenderIframeRef.current?.contentWindow?.postMessage(
         { type: "tender:pinball-mobile-key", key, action },
         window.location.origin
       );
     },
-    []
+    [resumePinballAudio]
   );
 
   useEffect(() => {
@@ -611,7 +647,23 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
       }
 
       if (event.data?.type === "tender:play-startup-sound") {
-        sounds.tenderStartup.play(event.data.soundUrl);
+        void sounds.tenderStartup.play(event.data.soundUrl);
+        return;
+      }
+
+      if (event.data?.type === "tender:play-system-sound") {
+        const sourceWindow = event.source as Window | null;
+        const requestId = event.data.requestId;
+        const soundUrl = event.data.soundUrl;
+        if (typeof soundUrl !== "string") return;
+
+        void sounds.tenderSystem.play(soundUrl).finally(() => {
+          if (!sourceWindow || typeof requestId !== "string") return;
+          sourceWindow.postMessage(
+            { type: "tender:system-sound-finished", requestId },
+            event.origin
+          );
+        });
         return;
       }
 
@@ -619,6 +671,7 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
       markPathwayComplete("tender");
       setFinalEmailOpen(true);
       const sourceWindow = event.source as Window | null;
+      finalEmailSourceRef.current = sourceWindow;
       sourceWindow?.postMessage(
         { type: "tender:final-email-dialog-shown", id: event.data.id },
         event.origin
@@ -841,6 +894,7 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
       <TenderFinalEmailDialog
         isOpen={finalEmailOpen}
         onClose={() => setFinalEmailOpen(false)}
+        onDecline={handleFinalEmailDecline}
         onComplete={handleClose}
       />
     </div>

@@ -86,17 +86,19 @@ function playTenderStartup(src?: string | null) {
     audio.pause();
     resetAudio(audio);
     audio.muted = false;
-    audio.play().catch((error) => {
-      console.warn("[tender-audio] Startup sound playback was rejected.", error);
-    });
+    return audio.play().then(
+      () => undefined,
+      (error) => {
+        console.warn("[tender-audio] Sound playback was rejected.", error);
+      }
+    );
   };
 
   if (tenderStartupPrimePromise) {
-    void tenderStartupPrimePromise.finally(startPlayback);
-    return;
+    return tenderStartupPrimePromise.then(startPlayback, startPlayback);
   }
 
-  startPlayback();
+  return startPlayback();
 }
 
 if (typeof window !== "undefined") {
@@ -331,6 +333,9 @@ export const sounds = {
   chord: () => play("/assets/win95/chord.wav"),
   tenderStartup: {
     prime: primeTenderStartup,
+    play: playTenderStartup,
+  },
+  tenderSystem: {
     play: playTenderStartup,
   },
 };

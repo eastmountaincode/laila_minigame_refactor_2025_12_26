@@ -68,6 +68,8 @@ export default class Game {
 		this.EXIT_TO_SUNSHINE_DELAY_MS = 5200;
 		this.SUNSHINE_FADE_MS = 1800;
 		this.SUNSHINE_COMPLETION_DELAY_MS = 0;
+		this._handleTenderMessage = this._handleTenderMessage.bind(this);
+		window.addEventListener('message', this._handleTenderMessage);
 		this.getHTMLElements();
 		this.endingVideoObjectUrls = [];
 		this._preloadEndingVideos();
@@ -429,6 +431,19 @@ export default class Game {
 	}
 
 	async _playParentSound(eventName) {
+		const topWindow = window.top;
+		const tenderSoundUrls = {
+			SystemExit: '/win98-web/assets/TADA-DmUIAu8f.WAV',
+			SystemQuestion: '/assets/win95/chord.wav',
+		};
+		if (topWindow && topWindow !== window && tenderSoundUrls[eventName]) {
+			topWindow.postMessage({
+				type: 'tender:play-system-sound',
+				soundUrl: tenderSoundUrls[eventName],
+			}, window.location.origin);
+			return;
+		}
+
 		const playSound = window.parent && window.parent.playSound;
 		if (typeof playSound === 'function') {
 			try {
@@ -436,6 +451,13 @@ export default class Game {
 			} catch (error) {
 				console.warn(`[BeFree] Failed to play ${eventName}:`, error);
 			}
+		}
+	}
+
+	_handleTenderMessage(event) {
+		if (event.origin !== window.location.origin || event.source !== window.top) return;
+		if (event.data?.type === 'tender:close-befree') {
+			this._closeBeFreeWindow();
 		}
 	}
 
@@ -1426,7 +1448,7 @@ export default class Game {
 		}
 
 		// Same sound the Denial consent modal plays. chord.wav lives at the site root.
-		try { new Audio('/assets/win95/chord.wav').play().catch(() => {}); } catch {}
+		void this._playParentSound('SystemQuestion');
 
 		const isFourthCrossing = this.wallResetCount >= this.WALL_POEMS.length;
 		if (isFourthCrossing) {
