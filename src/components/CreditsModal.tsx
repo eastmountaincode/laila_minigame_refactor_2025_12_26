@@ -10,6 +10,7 @@ import {
 } from "@/lib/home-assets";
 const REGULAR_EXPRESSION_URL = "https://www.andrew-boylan.com/";
 const LAILA_SMITH_URL = "https://linktr.ee/lailasmith_";
+const LYLIA_LI_URL = "https://lyliali.substack.com/";
 
 type CreditLine =
   | string
@@ -28,6 +29,11 @@ const CREDIT_SECTIONS = [
         imageSrc: LAILA_NAME_IMAGE,
       },
       { prefix: "Web development by", brand: "Regular Expression" },
+      {
+        prefix: "Pinball hand animation by",
+        label: "Lylia Li",
+        href: LYLIA_LI_URL,
+      },
     ],
   },
   {
