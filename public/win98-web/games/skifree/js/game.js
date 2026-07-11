@@ -58,8 +58,8 @@ export default class Game {
 		];
 		this.COMPLETION_SOUND_EVENT = 'SystemExit';
 		// Walking/exit cutscene tuning.
-		// Tender localhost serves this copied file from site/public/win98-web.
-		// Keep win98-web/public/games/skifree/js/game.js synced when tuning.
+		// Tender localhost serves the copied file under site/public/win98-web.
+		// Keep site/public/win98-web/games/skifree/js/game.js synced when tuning.
 		// Max speed cap while walking (skier uses normal mouse-based input, just slower).
 		this.WALKING_SPEED = 70;
 		// Legacy controlled-walking distance. The current take-off flow enters the exit
