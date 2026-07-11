@@ -304,7 +304,6 @@ export function HomeButtons({
           <button
             type="button"
             aria-label={button.label}
-            onPointerDown={() => sounds.tenderStartup.prime()}
             onClick={handleTenderOpen}
             className={[
               "group relative block cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400",

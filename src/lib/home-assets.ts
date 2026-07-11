@@ -3,6 +3,8 @@ export const LYLIA_IMAGE = "/images/laila_face_pic_hands.jpg";
 export const LAILA_NAME_IMAGE = "/images/laila-smith-text-for-credits.png";
 export const PATHWAY_COMPLETION_MARKER_IMAGE =
   "/assets/gifcities/checked-checkbox.png";
+export const TENDER_STARTUP_SOUND =
+  "/win98-web/assets/The Microsoft Sound-CnfsYV00.wav";
 
 export const TENDER_VIDEO_PRELOAD_ASSETS = [
   "/win98-web/games/skifree/video/be-free-animation.mp4",
@@ -14,6 +16,7 @@ export const HOME_STATIC_PRELOAD_ASSETS = [
   LYLIA_IMAGE,
   LAILA_NAME_IMAGE,
   PATHWAY_COMPLETION_MARKER_IMAGE,
+  TENDER_STARTUP_SOUND,
   ...TENDER_VIDEO_PRELOAD_ASSETS,
   "/fonts/pyxis-regular.ttf",
   "/assets/webflow/fonts/Apple Chancery.ttf",

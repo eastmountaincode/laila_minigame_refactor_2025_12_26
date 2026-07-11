@@ -1,10 +1,7 @@
+import { TENDER_STARTUP_SOUND } from "@/lib/home-assets";
+
 const cache = new Map<string, HTMLAudioElement>();
-const TENDER_STARTUP_FALLBACK_SRC =
-  "/win98-web/assets/The Microsoft Sound-CnfsYV00.wav";
-const TENDER_STARTUP_UNLOCK_SRC =
-  "data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA==";
 let tenderStartupAudio: HTMLAudioElement | null = null;
-let tenderStartupUnlockAudio: HTMLAudioElement | null = null;
 let tenderStartupPrimed = false;
 let tenderStartupPrimePromise: Promise<void> | null = null;
 
@@ -29,7 +26,7 @@ function play(src: string) {
 }
 
 function resolveTenderStartupSrc(src?: string | null) {
-  return src || TENDER_STARTUP_FALLBACK_SRC;
+  return src || TENDER_STARTUP_SOUND;
 }
 
 function resetAudio(audio: HTMLAudioElement) {
@@ -44,27 +41,25 @@ function getTenderStartupAudio(src?: string | null) {
     typeof window === "undefined"
       ? resolvedSrc
       : new URL(resolvedSrc, window.location.href).href;
-  if (!tenderStartupAudio || tenderStartupAudio.src !== absoluteSrc) {
-    tenderStartupAudio = preload(resolvedSrc);
+  if (!tenderStartupAudio) {
+    tenderStartupAudio = new Audio(resolvedSrc);
+    tenderStartupAudio.preload = "auto";
+  } else if (tenderStartupAudio.src !== absoluteSrc) {
+    // Safari grants autoplay permission per media element, so keep this
+    // element and change its source instead of replacing it.
+    tenderStartupAudio.src = resolvedSrc;
+    tenderStartupAudio.load();
   }
   return tenderStartupAudio;
-}
-
-function getTenderStartupUnlockAudio() {
-  if (!tenderStartupUnlockAudio) {
-    tenderStartupUnlockAudio = new Audio(TENDER_STARTUP_UNLOCK_SRC);
-    tenderStartupUnlockAudio.preload = "auto";
-  }
-  return tenderStartupUnlockAudio;
 }
 
 function primeTenderStartup() {
   if (typeof window === "undefined") return;
   if (tenderStartupPrimed || tenderStartupPrimePromise) return;
 
-  const audio = getTenderStartupUnlockAudio();
+  const audio = getTenderStartupAudio();
+  audio.pause();
   audio.muted = true;
-  audio.volume = 0;
   resetAudio(audio);
 
   tenderStartupPrimePromise = audio
@@ -74,26 +69,34 @@ function primeTenderStartup() {
       audio.pause();
       resetAudio(audio);
     })
-    .catch(() => {})
+    .catch((error) => {
+      console.warn("[tender-audio] Startup audio unlock was rejected.", error);
+    })
     .finally(() => {
       audio.pause();
       resetAudio(audio);
       audio.muted = true;
-      audio.volume = 0;
       tenderStartupPrimePromise = null;
     });
 }
 
 function playTenderStartup(src?: string | null) {
-  tenderStartupUnlockAudio?.pause();
-  const audio = getTenderStartupAudio(src);
-  audio.pause();
-  resetAudio(audio);
-  audio.muted = false;
-  audio.volume = 1;
-  audio.play().catch(() => {
-    play(resolveTenderStartupSrc(src));
-  });
+  const startPlayback = () => {
+    const audio = getTenderStartupAudio(src);
+    audio.pause();
+    resetAudio(audio);
+    audio.muted = false;
+    audio.play().catch((error) => {
+      console.warn("[tender-audio] Startup sound playback was rejected.", error);
+    });
+  };
+
+  if (tenderStartupPrimePromise) {
+    void tenderStartupPrimePromise.finally(startPlayback);
+    return;
+  }
+
+  startPlayback();
 }
 
 if (typeof window !== "undefined") {
