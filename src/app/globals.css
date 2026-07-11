@@ -174,38 +174,6 @@ body.dev-mode [data-bg-media] > * {
     inset -3px -3px #dfdfdf !important;
 }
 
-.locked-choice {
-  cursor: not-allowed;
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.locked-choice img {
-  filter: blur(4.5px) brightness(1.08) contrast(0.78) saturate(0.74);
-  opacity: 0.82;
-  transition:
-    filter 220ms ease,
-    opacity 220ms ease,
-    transform 220ms ease;
-  animation: locked-choice-soft-pulse 2.8s ease-in-out infinite;
-}
-
-.locked-choice:hover img,
-.locked-choice.tapped img {
-  filter: blur(3.5px) brightness(1.16) contrast(0.84) saturate(0.8);
-  opacity: 0.9;
-}
-
-@keyframes locked-choice-soft-pulse {
-  0%,
-  100% {
-    filter: blur(4.5px) brightness(1.08) contrast(0.78) saturate(0.74);
-  }
-  50% {
-    filter: blur(3.5px) brightness(1.16) contrast(0.84) saturate(0.8);
-  }
-}
-
 /* Exaggerated "cartoon Windows" treatment for the album popups. */
 .dreadful-dialog {
   width: min(92vw, 500px) !important;
@@ -373,10 +341,6 @@ body.dev-mode [data-bg-media] > * {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .locked-choice img {
-    animation: none;
-  }
-
   .bargaining-wave-char {
     animation: none;
   }

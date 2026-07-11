@@ -39,19 +39,7 @@ function buildHomepageImageUrl(
   return urlFor(image).width(width).fit("max").auto("format").quality(82).url();
 }
 
-type HomeProps = {
-  searchParams?: Promise<{
-    debug?: string;
-  }>;
-};
-
-function isPathwayDebugMode(debug?: string) {
-  return debug === "pathways";
-}
-
-export default async function Home({ searchParams }: HomeProps) {
-  const params = await searchParams;
-  const unlockPathways = isPathwayDebugMode(params?.debug);
+export default async function Home() {
   const data = await sanityFetch<HomepageData | null>({
     query: HOMEPAGE_QUERY,
     tags: ["homepage"],
@@ -124,7 +112,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
         {/* Desktop: corners | Mobile: centered column */}
         <div className="pointer-events-none home-viewport-layer z-30 p-[clamp(12px,3vw,36px)]">
-          <HomeButtons buttons={buttonData} unlockPathways={unlockPathways} />
+          <HomeButtons buttons={buttonData} />
         </div>
       </HomeLoadingGate>
     </main>

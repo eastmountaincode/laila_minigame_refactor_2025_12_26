@@ -80,12 +80,10 @@ interface ButtonData {
 
 interface HomeButtonsProps {
   buttons: ButtonData[];
-  unlockPathways?: boolean;
 }
 
 const DESKTOP_BUTTON_ORDER = ["bargaining", "anger", "denial", "tender"];
 const MOBILE_BUTTON_ORDER = ["denial", "bargaining", "anger", "tender"];
-const LOCKED_CHOICES = new Set(["anger", "tender"]);
 const MOBILE_SCALE_SOURCE_WIDTH = 482;
 const MOBILE_SCALE_VIEWPORT_WIDTH = 86;
 const MOBILE_MIN_SCALE = 0.34;
@@ -144,13 +142,9 @@ function CompletionMarker({ isMobile }: { isMobile: boolean }) {
   );
 }
 
-export function HomeButtons({
-  buttons,
-  unlockPathways = false,
-}: HomeButtonsProps) {
+export function HomeButtons({ buttons }: HomeButtonsProps) {
   const [tenderOpen, setTenderOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
-  const [lockedPreviewKey, setLockedPreviewKey] = useState<string | null>(null);
   const [completedPathways, setCompletedPathways] = useState<Set<Pathway>>(
     () => new Set()
   );
@@ -191,11 +185,6 @@ export function HomeButtons({
     const layout = BUTTON_LAYOUT[key];
     if (!layout) return null;
     const isCompleted = isPathway(key) && completedPathways.has(key);
-    const href =
-      unlockPathways && key === "anger"
-        ? `${button.href}?debug=pathways`
-        : button.href;
-
     const mobileTileStyle: CSSProperties = {
       width: mobileScaledSize(layout.desktopWidth),
       height: mobileScaledSize(layout.desktopHeight),
@@ -211,88 +200,6 @@ export function HomeButtons({
     const mobileHoverImageStyle = getMobileHoverImageStyle(
       layout.mobileHoverWidthScale
     );
-
-    if (LOCKED_CHOICES.has(key) && !unlockPathways) {
-      const isTapped = lockedPreviewKey === key;
-      const lockedClassName = [
-        "group locked-choice",
-        "relative block select-none outline-none focus-visible:ring-2 focus-visible:ring-pink-400",
-        isTapped ? "tapped" : null,
-      ]
-        .filter(Boolean)
-        .join(" ");
-
-      const handleLockedTouchStart = (event: React.TouchEvent) => {
-        event.preventDefault();
-        setLockedPreviewKey(key);
-        window.setTimeout(() => {
-          setLockedPreviewKey((currentKey) =>
-            currentKey === key ? null : currentKey
-          );
-        }, 700);
-      };
-
-      return (
-        <div
-          key={button._id}
-          className={isMobile ? "pointer-events-auto" : layout.desktopPosition}
-        >
-          <button
-            type="button"
-            aria-label={`${button.label} coming soon`}
-            aria-disabled="true"
-            className={lockedClassName}
-            onClick={(event) => event.preventDefault()}
-            onTouchStart={handleLockedTouchStart}
-            style={tileStyle}
-          >
-            {isMobile ? (
-              <>
-                <img
-                  src={button.defaultImageUrl}
-                  alt={button.defaultImageAlt}
-                  className={[
-                    MOBILE_IMAGE_BASE_CLASS,
-                    "group-hover:hidden group-[.tapped]:hidden",
-                  ].join(" ")}
-                />
-                <img
-                  src={button.hoverImageUrl}
-                  alt={button.hoverImageAlt}
-                  className={[
-                    mobileHoverImageClass,
-                    "hidden group-hover:block group-[.tapped]:block",
-                  ].join(" ")}
-                  style={mobileHoverImageStyle}
-                />
-              </>
-            ) : (
-              <>
-                <Image
-                  src={button.defaultImageUrl}
-                  alt={button.defaultImageAlt}
-                  width={layout.desktopWidth}
-                  height={layout.desktopHeight}
-                  className="group-hover:hidden"
-                  unoptimized
-                  priority
-                />
-                <Image
-                  src={button.hoverImageUrl}
-                  alt={button.hoverImageAlt}
-                  width={layout.desktopWidth}
-                  height={layout.desktopHeight}
-                  className="hidden group-hover:block"
-                  unoptimized
-                  priority
-                />
-              </>
-            )}
-            {isCompleted && <CompletionMarker isMobile={isMobile} />}
-          </button>
-        </div>
-      );
-    }
 
     // Tender opens the modal instead of navigating
     if (key === "tender") {
@@ -365,7 +272,7 @@ export function HomeButtons({
       return (
         <div key={button._id} className="pointer-events-auto">
           <ChoiceTile
-            href={href}
+            href={button.href}
             ariaLabel={button.label}
             className="group"
             style={mobileTileStyle}
@@ -396,7 +303,7 @@ export function HomeButtons({
     return (
       <div key={button._id} className={layout.desktopPosition}>
         <ChoiceTile
-          href={href}
+          href={button.href}
           ariaLabel={button.label}
           className="group"
           style={desktopTileStyle}
