@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
+import { sounds } from "@/lib/sounds";
 
 export default function DontTouchMePage() {
   const router = useRouter();
@@ -115,7 +116,10 @@ export default function DontTouchMePage() {
 
         {showBored && (
           <button
-            onClick={() => router.push("/anger/sad-girl")}
+            onClick={() => {
+              sounds.click();
+              router.push("/anger/sad-girl");
+            }}
             className="win95-btn cartoon-win95-btn fixed bottom-[5%] right-[5%] cursor-pointer"
             style={{
               background: "silver",
