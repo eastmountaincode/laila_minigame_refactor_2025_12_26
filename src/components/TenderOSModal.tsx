@@ -47,6 +47,27 @@ function PinballTouchButton({
 }) {
   const activePointer = useRef<number | null>(null);
 
+  const releaseActivePointer = useCallback(() => {
+    if (activePointer.current === null) return;
+
+    activePointer.current = null;
+    onKeyAction(keyId, "up");
+  }, [keyId, onKeyAction]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) releaseActivePointer();
+    };
+
+    window.addEventListener("blur", releaseActivePointer);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("blur", releaseActivePointer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      releaseActivePointer();
+    };
+  }, [releaseActivePointer]);
+
   const press = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -71,6 +92,7 @@ function PinballTouchButton({
     <button
       className={`pinball-mobile-key${wide ? " pinball-mobile-key-wide" : ""}`}
       type="button"
+      tabIndex={-1}
       onPointerDown={press}
       onPointerUp={release}
       onPointerCancel={release}
