@@ -28,7 +28,6 @@ interface TenderOSModalProps {
 const SCALE_BREAKPOINT = 700;
 const MIN_IFRAME_WIDTH = 800;
 const TENDER_OS_SRC = "/win98-web/index.html?v=ie-home-2026-05-01";
-const TENDER_COMPLETION_SOUND = "/win98-web/assets/TADA-DmUIAu8f.WAV";
 type FinalEmailView = "main" | "confirm" | "complete";
 type PinballMobileKey = "left" | "launch" | "right";
 type PinballMobileAction = "down" | "up";
@@ -234,10 +233,7 @@ function TenderFinalEmailDialog({
   };
 
   const playClick = () => {
-    try {
-      const audio = new Audio("/assets/win95/click.mp3");
-      audio.play().catch(() => {});
-    } catch {}
+    sounds.click();
   };
 
   const handleMouseDown = (event: React.MouseEvent) => {
@@ -577,7 +573,6 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
       window.location.origin
     );
     finalEmailSourceRef.current = null;
-    void sounds.tenderSystem.play(TENDER_COMPLETION_SOUND);
   }, []);
 
   const resumePinballAudio = useCallback(() => {
@@ -635,6 +630,24 @@ export function TenderOSModal({ isOpen, onClose }: TenderOSModalProps) {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [isOpen, handleClose]);
+
+  useEffect(() => {
+    if (!isOpen || !loaded) return;
+
+    const osDocument = tenderIframeRef.current?.contentDocument;
+    if (!osDocument) return;
+
+    const handleTenderClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest) return;
+      if (target.closest(".desktop .explorer-icon, .dialog-buttons button")) {
+        sounds.click();
+      }
+    };
+
+    osDocument.addEventListener("click", handleTenderClick, true);
+    return () => osDocument.removeEventListener("click", handleTenderClick, true);
+  }, [isOpen, loaded]);
 
   useEffect(() => {
     if (!isOpen) return;

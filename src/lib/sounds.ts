@@ -80,12 +80,13 @@ function primeTenderStartup() {
     });
 }
 
-function playTenderStartup(src?: string | null) {
+function playTenderAudio(src?: string | null, volume = 1) {
   const startPlayback = () => {
     const audio = getTenderStartupAudio(src);
     audio.pause();
     resetAudio(audio);
     audio.muted = false;
+    audio.volume = volume;
     return audio.play().then(
       () => undefined,
       (error) => {
@@ -99,6 +100,15 @@ function playTenderStartup(src?: string | null) {
   }
 
   return startPlayback();
+}
+
+function playTenderStartup(src?: string | null) {
+  return playTenderAudio(src);
+}
+
+function playTenderSystem(src?: string | null) {
+  const volume = src && /(?:^|\/)TADA[^/]*\.(?:wav|mp3)(?:$|\?)/i.test(src) ? 0.9 : 1;
+  return playTenderAudio(src, volume);
 }
 
 if (typeof window !== "undefined") {
@@ -336,6 +346,6 @@ export const sounds = {
     play: playTenderStartup,
   },
   tenderSystem: {
-    play: playTenderStartup,
+    play: playTenderSystem,
   },
 };
