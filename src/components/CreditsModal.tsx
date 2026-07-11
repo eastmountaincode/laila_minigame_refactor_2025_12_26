@@ -140,10 +140,10 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
                 <Image
                   src={LYLIA_IMAGE}
                   alt=""
-                  width={86}
-                  height={86}
+                  width={2888}
+                  height={3800}
                   unoptimized
-                  className="h-[42px] w-[42px] rotate-[-1deg] select-none object-cover md:h-[58px] md:w-[58px] -mb-0"
+                  className="-mb-0 h-auto w-[42px] rotate-[-1deg] select-none md:w-[58px]"
                 />
                 <h2
                   id="credits-title"

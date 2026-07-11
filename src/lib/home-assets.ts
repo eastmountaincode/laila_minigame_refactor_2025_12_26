@@ -1,5 +1,5 @@
 export const CREDITS_BACKGROUND_IMAGE = "/images/post-it-note.png";
-export const LYLIA_IMAGE = "/images/laila_face_pic_hands.png";
+export const LYLIA_IMAGE = "/images/laila_face_pic_hands.jpg";
 export const LAILA_NAME_IMAGE = "/images/laila-smith-text-for-credits.png";
 export const PATHWAY_COMPLETION_MARKER_IMAGE =
   "/assets/gifcities/checked-checkbox.png";
