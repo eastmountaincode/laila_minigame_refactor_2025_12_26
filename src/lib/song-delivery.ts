@@ -82,7 +82,7 @@ export async function sendPathwaySongEmail(email: string, pathway: Pathway) {
     from: requiredEnv("SMTP_FROM_EMAIL"),
     to: email,
     replyTo: process.env.SMTP_REPLY_TO,
-    subject: "I HAVE A GIFT FOR YOU",
+    subject: "I HAVE A MESSAGE FOR YOU",
     html: `
       <div style="font-family: Georgia, 'Times New Roman', serif; font-size: 16px; line-height: 1.45; color: #111;">
         <p>For some reason that only you can say, you chose ${escapedPathway}.</p>
