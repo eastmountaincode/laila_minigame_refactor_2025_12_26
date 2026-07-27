@@ -145,7 +145,7 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
             type="button"
             aria-label="Close credits"
             onClick={handleCloseClick}
-            className="absolute right-[20%] top-[6%] z-20 grid h-6 w-6 sm:h-8 sm:w-8 rotate-[-9.5deg] cursor-pointer place-items-center border-2 border-black bg-white/85 font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-xl leading-none text-black shadow-[3px_3px_0_rgba(0,0,0,0.45)] md:right-[19%] md:top-[5%]"
+            className="absolute right-[20%] top-[6%] z-20 grid h-6 w-6 sm:h-8 sm:w-8 rotate-[-9.5deg] cursor-pointer place-items-center border-2 border-black bg-white/85 font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-xl leading-none text-black md:right-[19%] md:top-[5%]"
           >
             x
           </button>
