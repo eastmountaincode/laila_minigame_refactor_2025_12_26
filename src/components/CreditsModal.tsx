@@ -162,14 +162,14 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
                   unoptimized
                   className="-mb-0 h-auto w-[42px] rotate-[-1deg] select-none md:w-[58px]"
                 />
-                <h3 className="mt-2 max-w-[18rem] font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[16px] font-bold leading-tight md:text-[20px]">
+                <h3 className="mt-3 max-w-[18rem] font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[16px] font-bold leading-tight md:text-[20px]">
                   {PROJECT_TITLE}
                 </h3>
                 <a
                   href={LISTEN_HERE_URL}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-1 inline-flex min-h-7 items-center justify-center border-2 border-black bg-white/85 px-2 py-1 font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[11px] font-bold leading-none text-black hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black md:text-[13px]"
+                  className="mt-2 inline-flex min-h-7 items-center justify-center border-2 border-black bg-white/85 px-2 py-1 font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[11px] font-bold leading-none text-black hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black md:text-[13px]"
                 >
                   LISTEN HERE
                 </a>
