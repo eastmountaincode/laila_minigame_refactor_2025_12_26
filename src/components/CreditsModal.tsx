@@ -29,6 +29,7 @@ type CreditLine =
 const CREDIT_SECTIONS = [
   {
     key: "project-credits",
+    title: "Credits:",
     lines: [
       {
         prefix: "Created by",
@@ -151,8 +152,8 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
           </button>
 
           <div className="absolute inset-[5%_9%_7%_8%] rotate-[-10deg] overflow-auto px-3 py-5 text-[#1f120f] sm:inset-[10%_11%_7%_10%] sm:px-4 sm:py-5 md:inset-[7%_9%_8%_8%]">
-            <div className="space-y-2 md:space-y-3">
-              <div className="flex flex-col items-start gap-1 pr-12">
+            <div className="space-y-4 md:space-y-5">
+              <div className="flex flex-col items-start pr-12">
                 <Image
                   src={LYLIA_IMAGE}
                   alt=""
@@ -172,39 +173,45 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
                 >
                   LISTEN HERE
                 </a>
-                <h2
-                  id="credits-title"
-                  className="font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[16px] font-bold leading-tight md:text-[20px]"
-                >
-                  Credits:
-                </h2>
               </div>
 
               <div className="space-y-3 font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[12px] leading-snug md:space-y-4 md:text-[16px]">
                 {CREDIT_SECTIONS.map((section) => (
                   <div key={section.key} className="space-y-1.5">
                     {section.title ? (
-                      <h3 className="text-[16px] font-bold leading-tight md:text-[20px]">
-                        {section.title}
-                      </h3>
+                      section.key === "project-credits" ? (
+                        <h2
+                          id="credits-title"
+                          className="text-[16px] font-bold leading-tight md:text-[20px]"
+                        >
+                          {section.title}
+                        </h2>
+                      ) : (
+                        <h3 className="text-[16px] font-bold leading-tight md:text-[20px]">
+                          {section.title}
+                        </h3>
+                      )
                     ) : null}
                     {section.lines.map((line: CreditLine) =>
                       "imageSrc" in line ? (
-                        <p key={line.href} className="max-w-[34rem]">
-                          {line.prefix}{" "}
+                        <p
+                          key={line.href}
+                          className="flex max-w-[34rem] flex-wrap items-center gap-x-2 gap-y-1"
+                        >
+                          <span>{line.prefix}</span>
                           <Image
                             src={line.imageSrc}
                             alt={line.label}
                             width={115}
                             height={65}
                             unoptimized
-                            className="ml-1 mb-1 inline-block h-auto w-[58px] align-middle md:w-[72px]"
-                          />{" "}
+                            className="inline-block h-auto w-[56px] shrink-0 md:w-[64px]"
+                          />
                           <a
                             href={line.href}
                             target="_blank"
                             rel="noreferrer"
-                            className="ml-2 inline-flex align-middle no-underline hover:underline focus-visible:underline"
+                            className="inline-flex no-underline hover:underline focus-visible:underline"
                           >
                             {line.linkLabel}
                           </a>
