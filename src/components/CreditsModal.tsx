@@ -11,11 +11,18 @@ import {
 const REGULAR_EXPRESSION_URL = "https://www.andrew-boylan.com/";
 const LAILA_SMITH_URL = "https://linktr.ee/lailasmith_";
 const LYLIA_LI_URL = "https://lyliali.substack.com/";
+const LISTEN_HERE_URL =
+  "https://symphony.to/lailasmith-1/something-dreadful-is-going-to-happen";
 
 type CreditLine =
-  | string
-  | { label: string; href: string }
-  | { prefix: string; label: string; href: string; imageSrc?: string }
+  | { label: string; href: string; prefix?: string }
+  | {
+      prefix: string;
+      label: string;
+      href: string;
+      imageSrc: string;
+      linkLabel: string;
+    }
   | { prefix: string; brand: string };
 
 const CREDIT_SECTIONS = [
@@ -27,6 +34,7 @@ const CREDIT_SECTIONS = [
         label: "Laila Smith",
         href: LAILA_SMITH_URL,
         imageSrc: LAILA_NAME_IMAGE,
+        linkLabel: "Link Tree",
       },
       { prefix: "Web development by", brand: "Regular Expression" },
       {
@@ -151,6 +159,14 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
                   unoptimized
                   className="-mb-0 h-auto w-[42px] rotate-[-1deg] select-none md:w-[58px]"
                 />
+                <a
+                  href={LISTEN_HERE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-flex min-h-7 items-center justify-center border-2 border-black bg-white/85 px-2 py-1 font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[11px] font-bold leading-none text-black shadow-[3px_3px_0_rgba(0,0,0,0.45)] hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black md:text-[13px]"
+                >
+                  LISTEN HERE
+                </a>
                 <h2
                   id="credits-title"
                   className="font-[Pixeltimesnewroman,_ui-serif] text-[clamp(30px,7vw,48px)] leading-none text-[#ff002e] drop-shadow-[2px_2px_0_rgba(0,0,0,0.7)]"
@@ -166,35 +182,40 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
                       {section.title}
                     </h3>
                     {section.lines.map((line: CreditLine) =>
-                      typeof line === "string" ? (
-                        <p key={line} className="max-w-[34rem]">
-                          {line}
+                      "imageSrc" in line ? (
+                        <p key={line.href} className="max-w-[34rem]">
+                          {line.prefix}{" "}
+                          <Image
+                            src={line.imageSrc}
+                            alt={line.label}
+                            width={115}
+                            height={65}
+                            unoptimized
+                            className="ml-1 mb-1 inline-block h-auto w-[58px] align-middle md:w-[72px]"
+                          />{" "}
+                          <a
+                            href={line.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex align-middle no-underline hover:underline focus-visible:underline"
+                          >
+                            {line.linkLabel}
+                          </a>
                         </p>
                       ) : "href" in line ? (
                         <p key={line.href} className="max-w-[34rem]">
-                          {"prefix" in line ? `${line.prefix} ` : null}
+                          {line.prefix ? `${line.prefix} ` : null}
                           <a
                             href={line.href}
                             target="_blank"
                             rel="noreferrer"
                             className={
-                              "prefix" in line
+                              line.prefix
                                 ? "inline-flex align-middle no-underline hover:underline focus-visible:underline"
                                 : "underline decoration-1 underline-offset-2"
                             }
                           >
-                            {"imageSrc" in line && line.imageSrc ? (
-                              <Image
-                                src={line.imageSrc}
-                                alt={line.label}
-                                width={115}
-                                height={65}
-                                unoptimized
-                                className="ml-1 mb-1 inline-block h-auto w-[58px] align-middle md:w-[72px]"
-                              />
-                            ) : (
-                              line.label
-                            )}
+                            {line.label}
                           </a>
                         </p>
                       ) : (
