@@ -13,6 +13,7 @@ const LAILA_SMITH_URL = "https://linktr.ee/lailasmith_";
 const LYLIA_LI_URL = "https://lyliali.substack.com/";
 const LISTEN_HERE_URL =
   "https://symphony.to/lailasmith-1/something-dreadful-is-going-to-happen";
+const PROJECT_TITLE = "Something Dreadful Is Going to Happen";
 
 type CreditLine =
   | { label: string; href: string; prefix?: string }
@@ -27,7 +28,7 @@ type CreditLine =
 
 const CREDIT_SECTIONS = [
   {
-    title: "Something Dreadful Is Going to Happen",
+    key: "project-credits",
     lines: [
       {
         prefix: "Created by",
@@ -45,6 +46,7 @@ const CREDIT_SECTIONS = [
     ],
   },
   {
+    key: "open-source",
     title: "Open Source Software Used:",
     lines: [
       {
@@ -159,6 +161,9 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
                   unoptimized
                   className="-mb-0 h-auto w-[42px] rotate-[-1deg] select-none md:w-[58px]"
                 />
+                <h3 className="max-w-[18rem] font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[16px] font-bold leading-tight md:text-[20px]">
+                  {PROJECT_TITLE}
+                </h3>
                 <a
                   href={LISTEN_HERE_URL}
                   target="_blank"
@@ -177,10 +182,12 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
 
               <div className="space-y-3 font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[12px] leading-snug md:space-y-4 md:text-[16px]">
                 {CREDIT_SECTIONS.map((section) => (
-                  <div key={section.title} className="space-y-1.5">
-                    <h3 className="text-[16px] font-bold leading-tight md:text-[20px]">
-                      {section.title}
-                    </h3>
+                  <div key={section.key} className="space-y-1.5">
+                    {section.title ? (
+                      <h3 className="text-[16px] font-bold leading-tight md:text-[20px]">
+                        {section.title}
+                      </h3>
+                    ) : null}
                     {section.lines.map((line: CreditLine) =>
                       "imageSrc" in line ? (
                         <p key={line.href} className="max-w-[34rem]">
@@ -197,7 +204,7 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
                             href={line.href}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex align-middle no-underline hover:underline focus-visible:underline"
+                            className="ml-2 inline-flex align-middle no-underline hover:underline focus-visible:underline"
                           >
                             {line.linkLabel}
                           </a>
