@@ -11,24 +11,24 @@ type SongDelivery = {
 
 const SONGS_BY_PATHWAY: Record<Pathway, SongDelivery> = {
   denial: {
-    title: "I Don't Think of You",
-    filename: "i-dont-think-of-you.mp3",
-    attachmentName: "I Don't Think of You.mp3",
+    title: "Maiden Instructlet",
+    filename: "maiden-instructlet.mp3",
+    attachmentName: "Maiden Instructlet.mp3",
   },
   bargaining: {
-    title: "I'll Do Anything",
-    filename: "ill-do-anything.mp3",
-    attachmentName: "I'll Do Anything.mp3",
+    title: "Siren Instructlet",
+    filename: "siren-instructlet.mp3",
+    attachmentName: "Siren Instructlet.mp3",
   },
   anger: {
-    title: "I Needed You to Know",
-    filename: "i-needed-you-to-know.mp3",
-    attachmentName: "I Needed You to Know.mp3",
+    title: "Martyr Instructlet",
+    filename: "martyr-instructlet.mp3",
+    attachmentName: "Martyr Instructlet.mp3",
   },
   tender: {
-    title: "The Heat Goes Down",
-    filename: "the-heat-goes-down.mp3",
-    attachmentName: "The Heat Goes Down.mp3",
+    title: "Mother Instructlet",
+    filename: "mother-instructlet.mp3",
+    attachmentName: "Mother Instructlet.mp3",
   },
 };
 
