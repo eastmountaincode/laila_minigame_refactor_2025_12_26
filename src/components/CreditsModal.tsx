@@ -174,9 +174,9 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
                 </a>
                 <h2
                   id="credits-title"
-                  className="font-[Pixeltimesnewroman,_ui-serif] text-[clamp(30px,7vw,48px)] leading-none text-[#ff002e] drop-shadow-[2px_2px_0_rgba(0,0,0,0.7)]"
+                  className="font-[Pixelated_MS_Sans_Serif,_Arial,_sans-serif] text-[16px] font-bold leading-tight md:text-[20px]"
                 >
-                  credits
+                  Credits:
                 </h2>
               </div>
 
